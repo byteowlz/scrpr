@@ -1,0 +1,76 @@
+# scrpr configuration file
+
+[browser]
+# Default browser for cookie extraction
+default = "auto"  # auto, chrome, firefox, safari, zen
+
+# Specific browser paths (optional, auto-detected if empty)
+[browser.paths]
+chrome = ""
+firefox = ""
+safari = ""
+zen = ""
+
+# Domain patterns for cookie injection
+[browser.cookies]
+domains = ["*"]  # Inject cookies for all domains by default
+exclude = []     # Domains to exclude from cookie injection
+
+[extraction]
+# Cookie banner handling
+skip_cookie_banners = true
+banner_timeout = 5  # seconds to wait for banner dismissal
+
+# JavaScript rendering
+enable_javascript = "auto"  # auto, always, never
+js_timeout = 15            # seconds to wait for JS execution
+wait_for_selector = ""     # CSS selector to wait for (optional)
+
+# Content extraction
+min_content_length = 100   # Minimum content length to consider valid
+remove_ads = true          # Remove advertisement blocks
+clean_html = true          # Clean HTML before processing
+
+[output]
+# Default output format
+default_format = "text"    # text, markdown
+
+# Metadata inclusion
+include_metadata = false
+metadata_fields = ["title", "author", "date", "url"]
+
+# Text formatting
+line_width = 80           # Max line width for text output (0 = unlimited)
+preserve_links = true     # Keep links in markdown output
+
+[network]
+# Request settings
+timeout = 30              # seconds
+user_agent = ""           # Custom user agent (empty = default)
+follow_redirects = true
+max_redirects = 10
+
+# Rate limiting
+delay = 0                 # seconds between requests (for multiple URLs)
+
+[parallel]
+# Parallel processing settings
+max_concurrency = 5       # Maximum concurrent requests
+batch_size = 0            # Process in batches (0 = process all at once)
+show_progress = true      # Show progress bar for multiple URLs
+fail_fast = false         # Stop on first error (false = continue processing)
+
+# Resource management
+max_memory_mb = 512       # Maximum memory usage in MB
+cleanup_interval = 30     # Clean up resources every N seconds
+
+[pipe]
+# Pipe handling settings
+buffer_size = 4096        # Input buffer size for reading from pipes
+output_separator = "---"  # Separator between multiple URL outputs
+null_separator = false    # Use null bytes as separators
+stream_mode = true        # Process URLs as they arrive (vs batch mode)
+
+[logging]
+level = "info"            # debug, info, warn, error
+file = ""                 # Log file path (empty = stderr only)
