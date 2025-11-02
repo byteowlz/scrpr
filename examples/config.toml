@@ -46,7 +46,8 @@ preserve_links = true     # Keep links in markdown output
 [network]
 # Request settings
 timeout = 30              # seconds
-user_agent = ""           # Custom user agent (empty = default)
+user_agent = ""           # Custom user agent (overrides browser_agent if set)
+browser_agent = "auto"    # Browser user agent: auto, chrome, firefox, safari, edge
 follow_redirects = true
 max_redirects = 10
 

@@ -10,7 +10,8 @@ import (
 )
 
 type SimpleFetcher struct {
-	client *http.Client
+	client          *http.Client
+	userAgentSelect *UserAgentSelector
 }
 
 func NewSimpleFetcher() *SimpleFetcher {
@@ -18,6 +19,7 @@ func NewSimpleFetcher() *SimpleFetcher {
 		client: &http.Client{
 			Timeout: 30 * time.Second,
 		},
+		userAgentSelect: NewUserAgentSelector(),
 	}
 }
 
@@ -27,11 +29,25 @@ func (sf *SimpleFetcher) FetchStatic(ctx context.Context, url string, opts Fetch
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	if opts.UserAgent != "" {
-		req.Header.Set("User-Agent", opts.UserAgent)
-	} else {
-		req.Header.Set("User-Agent", "scrpr/1.0")
+	// Set user agent (custom takes precedence, then browser agent, then random)
+	userAgent := opts.UserAgent
+	if userAgent == "" {
+		// Use browser agent selector if no custom user agent specified
+		userAgent = sf.userAgentSelect.GetUserAgent(opts.BrowserAgent)
 	}
+	req.Header.Set("User-Agent", userAgent)
+
+	// Add headers that make the request look more like a real browser
+	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8")
+	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
+	// Don't set Accept-Encoding - let Go's http client handle compression automatically
+	req.Header.Set("Connection", "keep-alive")
+	req.Header.Set("Upgrade-Insecure-Requests", "1")
+	req.Header.Set("Sec-Fetch-Dest", "document")
+	req.Header.Set("Sec-Fetch-Mode", "navigate")
+	req.Header.Set("Sec-Fetch-Site", "none")
+	req.Header.Set("Sec-Fetch-User", "?1")
+	req.Header.Set("Cache-Control", "max-age=0")
 
 	// Add cookies
 	for _, cookie := range opts.Cookies {

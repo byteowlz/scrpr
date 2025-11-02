@@ -51,6 +51,7 @@ type OutputConfig struct {
 type NetworkConfig struct {
 	Timeout         int    `toml:"timeout"`
 	UserAgent       string `toml:"user_agent"`
+	BrowserAgent    string `toml:"browser_agent"`
 	FollowRedirects bool   `toml:"follow_redirects"`
 	MaxRedirects    int    `toml:"max_redirects"`
 	Delay           int    `toml:"delay"`
@@ -107,6 +108,7 @@ func Default() *Config {
 		Network: NetworkConfig{
 			Timeout:         30,
 			UserAgent:       "",
+			BrowserAgent:    "auto",
 			FollowRedirects: true,
 			MaxRedirects:    10,
 			Delay:           0,
@@ -229,7 +231,8 @@ preserve_links = true     # Keep links in markdown output
 [network]
 # Request settings
 timeout = 30              # seconds
-user_agent = ""           # Custom user agent (empty = default)
+user_agent = ""           # Custom user agent (overrides browser_agent if set)
+browser_agent = "auto"    # Browser user agent: auto, chrome, firefox, safari, edge
 follow_redirects = true
 max_redirects = 10
 
