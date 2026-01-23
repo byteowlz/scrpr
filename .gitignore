@@ -10,3 +10,57 @@ wheels/
 .env
 # Virtual environments
 .venv
+
+# ---- ignr (detected: go,macos) @ 2026-01-23 ----
+
+# === go ===
+# Go
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+# Test binary, built with `go test -c`
+*.test
+# Output of the go coverage tool
+*.out
+coverage.html
+# Dependency directories
+vendor/
+# Go workspace file
+go.work
+go.work.sum
+# IDE and editor directories
+.idea/
+# Air live reload
+tmp/
+# Delve debugger
+__debug_bin*
+# Go build cache (usually in system temp, but sometimes local)
+.gocache/
+
+# === macos ===
+# macOS
+# General
+.DS_Store
+.AppleDouble
+.LSOverride
+# Icon must end with two \r
+Icon
+# Thumbnails
+._*
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
