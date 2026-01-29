@@ -280,6 +280,8 @@ echo -e "url1\nurl2\nurl3" | \
 
 Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
+Note: the built binary at repo root (`/scrpr`) is intentionally ignored by git.
+
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details.
