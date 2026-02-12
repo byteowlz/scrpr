@@ -11,7 +11,7 @@ wheels/
 # Virtual environments
 .venv
 
-# ---- ignr (detected: go,macos) @ 2026-01-23 ----
+# ---- ignr (detected: go,macos) @ 2026-02-12 ----
 
 # === go ===
 # Go
@@ -64,3 +64,4 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
+scrpr

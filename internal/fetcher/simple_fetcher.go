@@ -23,6 +23,17 @@ func NewSimpleFetcher() *SimpleFetcher {
 	}
 }
 
+// SetFollowRedirects configures whether the fetcher follows HTTP redirects
+func (sf *SimpleFetcher) SetFollowRedirects(follow bool) {
+	if !follow {
+		sf.client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		}
+	} else {
+		sf.client.CheckRedirect = nil
+	}
+}
+
 func (sf *SimpleFetcher) FetchStatic(ctx context.Context, url string, opts FetchOptions) (*FetchResult, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
