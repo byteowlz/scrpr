@@ -1,20 +1,22 @@
 # scrpr
 
-A fast, clean CLI tool for extracting main content from websites. Supports JavaScript rendering, browser cookie integration, and UNIX pipe operations.
+A fast CLI tool for extracting main content from websites. Supports multiple
+extraction backends (local readability, Tavily, Jina Reader), browser cookie
+integration, and UNIX pipe operations.
 
 ## Features
 
-- **Clean Content Extraction**: Uses readability algorithms to extract main article content with intelligent newline cleaning
-- **JavaScript Support**: Handles dynamic websites with ChromeDP (coming soon)
-- **Browser Integration**: Extract and use cookies from Chrome, Firefox, Safari, and Zen browsers
-- **Pipe-Friendly**: Full UNIX pipe support for command chaining
-- **Multiple Formats**: Output as clean text or Markdown
-- **Parallel Processing**: Process multiple URLs concurrently (coming soon)
-- **Cookie Banner Handling**: Automatically dismiss cookie banners (coming soon)
+- **Multiple extraction backends** - local readability (default), Tavily Extract API, Jina Reader API
+- **Clean content extraction** using readability algorithms with intelligent newline cleaning
+- **Pipe-friendly** - full UNIX pipe support, pairs with `sx` for search-to-content pipelines
+- **Multiple output formats** - text or Markdown
+- **Batch processing** - process multiple URLs with progress, rate limiting, and error resilience
+- **Directory output** - save each URL to its own file with `-o dir/`
+- **Browser cookie integration** - extract cookies from Chrome, Firefox, Safari, Zen
+- **Quiet mode** - `-q` suppresses all non-content output for clean piping
+- **Granular exit codes** - 0=ok, 1=network, 2=parse, 3=input, 4=config, 5=io, 6=partial
 
 ## Installation
-
-### From Source
 
 ```bash
 git clone https://github.com/byteowlz/scrpr.git
@@ -22,272 +24,206 @@ cd scrpr
 go build -o scrpr cmd/scrpr/main.go
 ```
 
-### Binary Releases (Coming Soon)
-
-Pre-built binaries will be available for Linux, macOS, and Windows.
-
 ## Quick Start
 
 ```bash
-# Extract content from a single URL (with clean text flow)
-scrpr https://openshovelshack.com/blog/the-octopus-and-the-rake
+# Extract content from a URL
+scrpr https://example.com
 
 # Output as Markdown
 scrpr https://example.com --format markdown
 
-# Process multiple URLs
-scrpr https://example.com https://news.ycombinator.com
+# Use Jina Reader for JS-heavy sites (no API key needed)
+scrpr https://example.com -B jina
 
-# Use pipes
-echo "https://example.com" | scrpr
-cat urls.txt | scrpr --format markdown
+# Pipe from sx search
+sx "query" -L -n 5 | scrpr --format markdown
+```
+
+## Extraction Backends
+
+scrpr supports three extraction backends:
+
+| Backend | Flag | Auth | Best For |
+|---------|------|------|----------|
+| **readability** (default) | `-B readability` | None | Fast, local, most sites |
+| **tavily** | `-B tavily` | API key | JS-heavy sites, better quality |
+| **jina** | `-B jina` | Optional | Free, no auth needed, decent quality |
+
+### Readability (Default)
+
+Local extraction using go-readability. No API key needed. Works for most sites.
+
+```bash
+scrpr https://example.com
+```
+
+### Tavily Extract API
+
+Cloud-based extraction that handles JavaScript-heavy sites better.
+Requires an API key ([free tier: 1,000 credits/month](https://tavily.com/)).
+
+```bash
+# Via config
+# [extraction.tavily]
+# api_key = "tvly-xxx"
+
+# Via env var
+export TAVILY_API_KEY="tvly-xxx"
+
+scrpr https://js-heavy-site.com -B tavily --format markdown
+```
+
+### Jina Reader API
+
+Free extraction via `r.jina.ai`. Works without an API key (rate limited).
+Optional key for higher limits.
+
+```bash
+scrpr https://example.com -B jina --format markdown
 ```
 
 ## Usage
 
-### Basic Syntax
+### Basic
 
 ```bash
-scrpr [urls...] [flags]
+# Single URL
+scrpr https://example.com
+
+# Multiple URLs
+scrpr https://a.com https://b.com
+
+# From file
+scrpr -f urls.txt
+
+# From pipe
+echo "https://example.com" | scrpr
+cat urls.txt | scrpr --format markdown
 ```
 
-### Arguments
-
-- `urls` - Website URLs to extract content from (space-separated)
-- If no URLs provided, reads from stdin
-
-### Flags
-
-#### Input/Output
-
-- `-f, --file string` - Read URLs from file (one per line)
-- `-o, --output string` - Output to file or directory (default: stdout)
-- `--format string` - Output format: text, markdown (default: text)
-- `--separator string` - Output separator for multiple URLs (default: "---")
-- `--null-separator` - Use null byte separator (for xargs -0)
-
-#### Browser Integration
-
-- `-b, --browser string` - Browser for cookie extraction: chrome, firefox, safari, zen (default: auto)
-
-#### Content Processing
-
-- `--include-metadata` - Include page metadata in output
-- `--user-agent string` - Custom user agent string
-
-#### Network
-
-- `--timeout int` - Request timeout in seconds (default: 30)
-
-#### System
-
-- `-v, --verbose` - Verbose logging
-- `--config string` - Custom config file path
-
-## Examples
-
-### Basic Usage
+### Output Options
 
 ```bash
-# Simple content extraction
-scrpr https://news.ycombinator.com
+# Save to file
+scrpr https://example.com -o article.md --format markdown
 
-# Save as markdown file
-scrpr https://example.com --format markdown -o article.md
+# Save each URL to its own file in a directory
+scrpr https://a.com https://b.com -o articles/
 
 # Include metadata
 scrpr https://example.com --include-metadata
 ```
 
-### Multiple URLs
+### Batch Processing
 
 ```bash
-# Process multiple URLs
-scrpr https://example.com https://news.ycombinator.com
+# Rate limiting
+scrpr -f urls.txt --delay 0.5
 
-# Custom separator
-scrpr url1 url2 --separator "==="
+# Continue on error
+scrpr -f urls.txt --continue-on-error
 
-# From file
-scrpr -f urls.txt --format markdown
+# Progress indicator
+scrpr -f urls.txt --progress
+
+# Quiet mode (content only, no stderr)
+scrpr -f urls.txt -q
 ```
 
-### Pipe Operations
+### Pipelines with sx
 
 ```bash
-# Basic pipe input
-echo "https://example.com" | scrpr
+# Search and extract content
+sx "rust error handling" -L -n 5 | scrpr --format markdown
 
-# Chain with other commands
-cat bookmarks.txt | scrpr | grep "important"
+# Save to directory
+sx "query" -L -n 5 | scrpr --format markdown -o articles/
 
-# Process API responses
-curl -s "api.example.com/articles" | jq -r '.urls[]' | scrpr
+# Use Jina for JS-heavy results
+sx "query" -L -n 5 | scrpr -B jina --format markdown
 
-# Use with xargs
-cat urls.txt | scrpr --null-separator | xargs -0 process_text
+# With rate limiting and error resilience
+sx "query" -L -n 10 | scrpr --delay 0.5 --continue-on-error
 
-# Save individual articles
-cat urls.txt | while read url; do
-  scrpr "$url" --format markdown -o "$(basename "$url").md"
-done
+# Quiet pipeline
+sx "query" -L -n 5 | scrpr -q --format markdown > output.md
 ```
 
-### Advanced Usage
+### All Flags
 
-```bash
-# Custom timeout and user agent
-scrpr https://example.com --timeout 60 --user-agent "MyBot/1.0"
-
-# Verbose output
-scrpr https://example.com --verbose
-
-# Use cookies from specific browser
-scrpr https://example.com --browser chrome
+```
+Flags:
+  -B, --extract-backend string   extraction backend (readability, tavily, jina)
+  -f, --file string              read URLs from file
+  -o, --output string            output to file or directory
+      --format string            text or markdown (default "text")
+      --separator string         separator for multiple URLs (default "---")
+      --null-separator           null byte separator (for xargs -0)
+  -c, --concurrency int          max concurrent requests (default 5)
+      --batch-size int           process in batches of N
+      --progress                 show progress for batch processing
+  -b, --browser string           browser for cookies (chrome/firefox/safari/zen)
+      --javascript               force JS rendering
+      --no-js                    disable JS rendering
+      --skip-banners             skip cookie banners (default true)
+      --timeout int              request timeout in seconds (default 30)
+      --include-metadata         include page metadata
+      --user-agent string        custom user agent
+      --browser-agent string     browser agent type
+      --continue-on-error        continue on URL failures
+      --no-follow-redirects      disable HTTP redirects
+      --delay float              seconds between requests
+  -v, --verbose                  verbose output
+  -q, --quiet                    suppress non-content output
+      --config string            config file path
 ```
 
 ## Configuration
 
-scrpr uses a TOML configuration file located at:
-
-- `$XDG_CONFIG_HOME/scrpr/config.toml`
-- `~/.config/scrpr/config.toml` (fallback)
-
-### Example Configuration
+Config at `$XDG_CONFIG_HOME/scrpr/config.toml` (auto-created on first run).
 
 ```toml
-[browser]
-default = "auto"  # auto, chrome, firefox, safari, zen
-
 [extraction]
-skip_cookie_banners = true
+backend = "readability"          # readability, tavily, jina
 min_content_length = 100
 remove_ads = true
 
+[extraction.tavily]
+api_key = ""                     # or set TAVILY_API_KEY env var
+extract_depth = "basic"          # basic or advanced
+
+[extraction.jina]
+api_key = ""                     # optional, for higher rate limits
+
 [output]
-default_format = "text"  # text, markdown
-include_metadata = false
+default_format = "text"
 preserve_links = true
 
 [network]
 timeout = 30
-user_agent = ""
+browser_agent = "auto"
 follow_redirects = true
+delay = 0
 
 [parallel]
 max_concurrency = 5
 show_progress = true
-
-[logging]
-level = "info"
+fail_fast = false
 ```
 
-See `examples/config.toml` for a complete configuration example.
+## Exit Codes
 
-## Browser Support
-
-scrpr can extract and use cookies from:
-
-- **Chrome/Chromium** - `~/.config/google-chrome/Default/Cookies`
-- **Firefox** - `~/.mozilla/firefox/*/cookies.sqlite`  
-- **Safari** (macOS only) - `~/Library/Cookies/Cookies.binarycookies`
-- **Zen Browser** - `~/.zen/*/cookies.sqlite`
-
-Cookie extraction is read-only and secure - no cookies are modified or stored.
-
-## Output Formats
-
-### Text Format (default)
-
-Clean, readable text with intelligent newline cleaning. Removes unwanted line breaks that split sentences while preserving paragraph structure.
-
-```bash
-scrpr https://example.com --format text
-```
-
-**Newline Cleaning Features:**
-- Automatically joins lines that break mid-sentence
-- Preserves paragraph breaks and intentional formatting
-- Maintains proper spacing between words
-- Recognizes sentence-ending punctuation
-- Handles bullet points and numbered lists correctly
-
-### Markdown Format
-
-Structured Markdown with preserved formatting and links.
-
-```bash
-scrpr https://example.com --format markdown
-```
-
-## Integration Examples
-
-### Content Archiving
-
-```bash
-# Archive articles from RSS feed
-curl -s "https://feeds.example.com/rss.xml" | \
-  grep -oE 'https://[^<]+' | \
-  scrpr --format markdown -o archive/
-```
-
-### Research Pipeline
-
-```bash
-# Extract and analyze content
-cat research_urls.txt | \
-  scrpr --format text | \
-  grep -i "machine learning" | \
-  sort | uniq -c
-```
-
-### Documentation Generation  
-
-```bash
-# Convert web pages to documentation
-echo -e "url1\nurl2\nurl3" | \
-  scrpr --format markdown | \
-  pandoc -f markdown -t pdf > docs.pdf
-```
-
-## Development Status
-
-✅ **Completed**
-
-- CLI interface and argument parsing
-- Content extraction with readability
-- Intelligent newline cleaning for better text flow
-- Pipe input/output support  
-- Browser cookie extraction
-- Text and Markdown output formats
-- Configuration system
-
-🚧 **In Progress**
-
-- JavaScript rendering with ChromeDP
-- Cookie banner dismissal
-- Parallel processing
-- Enhanced metadata extraction
-
-📋 **Planned**
-
-- Browser plugin interface
-- Custom extraction rules
-- Output to various formats (JSON, PDF)
-- Web UI for configuration
-
-## Contributing
-
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-Note: the built binary at repo root (`/scrpr`) is intentionally ignored by git.
+| Code | Meaning |
+|------|---------|
+| 0 | Success |
+| 1 | Network error |
+| 2 | Parse/extraction error |
+| 3 | Invalid input |
+| 4 | Config error |
+| 5 | File I/O error |
+| 6 | Partial success (some URLs failed) |
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
-
-## Similar Projects
-
-- [Trafilatura](https://github.com/adbar/trafilatura) (Python) - Web scraping and content extraction
-- [Mercury Parser](https://github.com/postlight/mercury-parser) (JavaScript) - Content extraction
-- [newspaper3k](https://github.com/codelucas/newspaper) (Python) - Article scraping
+MIT License
