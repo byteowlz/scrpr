@@ -15,6 +15,7 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/byteowlz/scrpr/internal/config"
+	"github.com/byteowlz/scrpr/internal/extractor"
 	"github.com/byteowlz/scrpr/internal/fetcher"
 	"github.com/byteowlz/scrpr/internal/processor"
 )
@@ -53,6 +54,7 @@ var (
 	continueOnError    bool
 	noFollowRedirects  bool
 	delay              float64
+	extractBackend     string
 )
 
 var rootCmd = &cobra.Command{
@@ -109,6 +111,9 @@ func init() {
 	rootCmd.Flags().BoolVar(&continueOnError, "continue-on-error", false, "continue processing remaining URLs on error")
 	rootCmd.Flags().BoolVar(&noFollowRedirects, "no-follow-redirects", false, "disable following HTTP redirects")
 	rootCmd.Flags().Float64Var(&delay, "delay", 0, "delay in seconds between requests (rate limiting)")
+
+	// Extraction backend flags
+	rootCmd.Flags().StringVarP(&extractBackend, "extract-backend", "B", "", "extraction backend (readability, tavily, jina)")
 
 	// System flags
 	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose logging")
@@ -214,6 +219,9 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 	if !cmd.Flags().Changed("format") && cfg.Output.DefaultFormat != "" {
 		outputFormat = cfg.Output.DefaultFormat
+	}
+	if !cmd.Flags().Changed("extract-backend") && cfg.Extraction.Backend != "" {
+		extractBackend = cfg.Extraction.Backend
 	}
 
 	// Collect URLs from various sources
@@ -357,6 +365,17 @@ func processURL(url string, cfg *config.Config) (*ProcessResult, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
 	defer cancel()
 
+	// Check if we should use an alternative extraction backend
+	backend := extractBackend
+	if backend == "" || backend == "readability" {
+		return processURLLocal(ctx, url, cfg)
+	}
+
+	return processURLBackend(ctx, url, cfg, backend)
+}
+
+// processURLLocal uses the built-in readability extraction
+func processURLLocal(ctx context.Context, url string, cfg *config.Config) (*ProcessResult, error) {
 	// Create fetcher and processor
 	simpleFetcher := fetcher.NewSimpleFetcher()
 
@@ -419,6 +438,51 @@ func processURL(url string, cfg *config.Config) (*ProcessResult, error) {
 		URL:     url,
 		Title:   processed.Title,
 		Content: content,
+	}, nil
+}
+
+// processURLBackend uses an API-based extraction backend (tavily or jina)
+func processURLBackend(ctx context.Context, url string, cfg *config.Config, backendName string) (*ProcessResult, error) {
+	var backend extractor.Backend
+
+	switch backendName {
+	case "tavily":
+		apiKey := cfg.Extraction.Tavily.APIKey
+		if envKey := os.Getenv("TAVILY_API_KEY"); envKey != "" {
+			apiKey = envKey
+		}
+		if apiKey == "" {
+			return nil, fmt.Errorf("tavily: API key not configured (set extraction.tavily.api_key in config or TAVILY_API_KEY env var)")
+		}
+		backend = extractor.NewTavilyBackend(
+			apiKey,
+			cfg.Extraction.Tavily.ExtractDepth,
+			time.Duration(timeout)*time.Second,
+		)
+
+	case "jina":
+		apiKey := cfg.Extraction.Jina.APIKey
+		if envKey := os.Getenv("JINA_API_KEY"); envKey != "" {
+			apiKey = envKey
+		}
+		backend = extractor.NewJinaBackend(
+			apiKey,
+			time.Duration(timeout)*time.Second,
+		)
+
+	default:
+		return nil, fmt.Errorf("unknown extraction backend: %s (available: readability, tavily, jina)", backendName)
+	}
+
+	result, err := backend.Extract(ctx, url, outputFormat)
+	if err != nil {
+		return nil, fmt.Errorf("extraction failed: %w", err)
+	}
+
+	return &ProcessResult{
+		URL:     result.URL,
+		Title:   result.Title,
+		Content: result.Content,
 	}, nil
 }
 

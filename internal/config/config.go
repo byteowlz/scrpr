@@ -38,6 +38,24 @@ type ExtractionConfig struct {
 	MinContentLength  int    `toml:"min_content_length"`
 	RemoveAds         bool   `toml:"remove_ads"`
 	CleanHTML         bool   `toml:"clean_html"`
+	Backend           string `toml:"backend"` // readability (default), tavily, jina
+
+	// Tavily extraction settings
+	Tavily TavilyExtractionConfig `toml:"tavily"`
+
+	// Jina extraction settings
+	Jina JinaExtractionConfig `toml:"jina"`
+}
+
+// TavilyExtractionConfig holds Tavily Extract API settings
+type TavilyExtractionConfig struct {
+	APIKey       string `toml:"api_key"`
+	ExtractDepth string `toml:"extract_depth"` // basic or advanced
+}
+
+// JinaExtractionConfig holds Jina Reader API settings
+type JinaExtractionConfig struct {
+	APIKey string `toml:"api_key"` // optional, for higher rate limits
 }
 
 type OutputConfig struct {
