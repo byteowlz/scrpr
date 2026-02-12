@@ -13,6 +13,7 @@ import (
 type JinaBackend struct {
 	APIKey  string // Optional - works without auth but with rate limits
 	Timeout time.Duration
+	BaseURL string // overridable for testing (default: https://r.jina.ai/)
 	client  *http.Client
 }
 
@@ -24,6 +25,7 @@ func NewJinaBackend(apiKey string, timeout time.Duration) *JinaBackend {
 	return &JinaBackend{
 		APIKey:  apiKey,
 		Timeout: timeout,
+		BaseURL: "https://r.jina.ai/",
 		client: &http.Client{
 			Timeout: timeout,
 		},
@@ -42,8 +44,8 @@ func (j *JinaBackend) IsAvailable() bool {
 
 // Extract fetches and extracts content from a URL using Jina Reader
 func (j *JinaBackend) Extract(ctx context.Context, url string, format string) (*ExtractResult, error) {
-	// Jina Reader: GET https://r.jina.ai/{URL}
-	jinaURL := "https://r.jina.ai/" + url
+	// Jina Reader: GET {BaseURL}{URL}
+	jinaURL := j.BaseURL + url
 
 	req, err := http.NewRequestWithContext(ctx, "GET", jinaURL, nil)
 	if err != nil {

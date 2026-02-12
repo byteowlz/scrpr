@@ -15,6 +15,7 @@ type TavilyBackend struct {
 	APIKey       string
 	ExtractDepth string // "basic" or "advanced"
 	Timeout      time.Duration
+	BaseURL      string // overridable for testing
 	client       *http.Client
 }
 
@@ -30,6 +31,7 @@ func NewTavilyBackend(apiKey, extractDepth string, timeout time.Duration) *Tavil
 		APIKey:       apiKey,
 		ExtractDepth: extractDepth,
 		Timeout:      timeout,
+		BaseURL:      "https://api.tavily.com/extract",
 		client: &http.Client{
 			Timeout: timeout,
 		},
@@ -81,7 +83,7 @@ func (t *TavilyBackend) Extract(ctx context.Context, url string, format string) 
 		return nil, fmt.Errorf("tavily: failed to marshal request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", "https://api.tavily.com/extract", bytes.NewReader(bodyBytes))
+	req, err := http.NewRequestWithContext(ctx, "POST", t.BaseURL, bytes.NewReader(bodyBytes))
 	if err != nil {
 		return nil, fmt.Errorf("tavily: failed to create request: %w", err)
 	}
