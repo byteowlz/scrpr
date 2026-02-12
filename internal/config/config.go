@@ -9,13 +9,14 @@ import (
 )
 
 type Config struct {
-	Browser    BrowserConfig    `toml:"browser"`
-	Extraction ExtractionConfig `toml:"extraction"`
-	Output     OutputConfig     `toml:"output"`
-	Network    NetworkConfig    `toml:"network"`
-	Parallel   ParallelConfig   `toml:"parallel"`
-	Pipe       PipeConfig       `toml:"pipe"`
-	Logging    LoggingConfig    `toml:"logging"`
+	Schema     string           `toml:"$schema,omitempty" mapstructure:"$schema"`
+	Browser    BrowserConfig    `toml:"browser" mapstructure:"browser"`
+	Extraction ExtractionConfig `toml:"extraction" mapstructure:"extraction"`
+	Output     OutputConfig     `toml:"output" mapstructure:"output"`
+	Network    NetworkConfig    `toml:"network" mapstructure:"network"`
+	Parallel   ParallelConfig   `toml:"parallel" mapstructure:"parallel"`
+	Pipe       PipeConfig       `toml:"pipe" mapstructure:"pipe"`
+	Logging    LoggingConfig    `toml:"logging" mapstructure:"logging"`
 }
 
 type BrowserConfig struct {
@@ -215,7 +216,9 @@ func (c *Config) CreateExampleConfig(configPath string) error {
 		return fmt.Errorf("error creating config directory: %w", err)
 	}
 
-	exampleContent := `# scrpr configuration file
+	exampleContent := `"$schema" = "https://raw.githubusercontent.com/byteowlz/schemas/refs/heads/main/scrpr/scrpr.config.schema.json"
+
+# scrpr configuration file
 
 [browser]
 # Default browser for cookie extraction

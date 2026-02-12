@@ -1,0 +1,325 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/byteowlz/scrpr/schemas/config.schema.json",
+  "title": "scrpr configuration",
+  "description": "Configuration schema for scrpr - website content extraction CLI",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "JSON Schema reference for editor support"
+    },
+    "browser": {
+      "$ref": "#/definitions/BrowserConfig"
+    },
+    "extraction": {
+      "$ref": "#/definitions/ExtractionConfig"
+    },
+    "output": {
+      "$ref": "#/definitions/OutputConfig"
+    },
+    "network": {
+      "$ref": "#/definitions/NetworkConfig"
+    },
+    "parallel": {
+      "$ref": "#/definitions/ParallelConfig"
+    },
+    "pipe": {
+      "$ref": "#/definitions/PipeConfig"
+    },
+    "logging": {
+      "$ref": "#/definitions/LoggingConfig"
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "BrowserConfig": {
+      "type": "object",
+      "description": "Browser integration configuration",
+      "properties": {
+        "default": {
+          "type": "string",
+          "enum": ["auto", "chrome", "firefox", "safari", "zen"],
+          "default": "auto",
+          "description": "Default browser for cookie extraction"
+        },
+        "paths": {
+          "type": "object",
+          "description": "Specific browser executable paths (auto-detected if empty)",
+          "properties": {
+            "chrome": { "type": "string" },
+            "firefox": { "type": "string" },
+            "safari": { "type": "string" },
+            "zen": { "type": "string" }
+          },
+          "additionalProperties": false
+        },
+        "cookies": {
+          "type": "object",
+          "description": "Cookie injection settings",
+          "properties": {
+            "domains": {
+              "type": "array",
+              "items": { "type": "string" },
+              "default": ["*"],
+              "description": "Domain patterns for cookie injection"
+            },
+            "exclude": {
+              "type": "array",
+              "items": { "type": "string" },
+              "default": [],
+              "description": "Domains to exclude from cookie injection"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "ExtractionConfig": {
+      "type": "object",
+      "description": "Content extraction configuration",
+      "properties": {
+        "backend": {
+          "type": "string",
+          "enum": ["readability", "tavily", "jina"],
+          "default": "readability",
+          "description": "Extraction backend"
+        },
+        "skip_cookie_banners": {
+          "type": "boolean",
+          "default": true,
+          "description": "Attempt to dismiss cookie banners"
+        },
+        "banner_timeout": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 5,
+          "description": "Seconds to wait for banner dismissal"
+        },
+        "enable_javascript": {
+          "type": "string",
+          "enum": ["auto", "always", "never"],
+          "default": "auto",
+          "description": "JavaScript rendering mode"
+        },
+        "js_timeout": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 15,
+          "description": "Seconds to wait for JS execution"
+        },
+        "wait_for_selector": {
+          "type": "string",
+          "description": "CSS selector to wait for before extraction"
+        },
+        "min_content_length": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 100,
+          "description": "Minimum content length to consider valid"
+        },
+        "remove_ads": {
+          "type": "boolean",
+          "default": true,
+          "description": "Remove advertisement blocks"
+        },
+        "clean_html": {
+          "type": "boolean",
+          "default": true,
+          "description": "Clean HTML before processing"
+        },
+        "tavily": {
+          "type": "object",
+          "description": "Tavily Extract API settings",
+          "properties": {
+            "api_key": {
+              "type": "string",
+              "description": "Tavily API key (or set TAVILY_API_KEY env var)"
+            },
+            "extract_depth": {
+              "type": "string",
+              "enum": ["basic", "advanced"],
+              "default": "basic",
+              "description": "Extract depth: basic or advanced"
+            }
+          },
+          "additionalProperties": false
+        },
+        "jina": {
+          "type": "object",
+          "description": "Jina Reader API settings",
+          "properties": {
+            "api_key": {
+              "type": "string",
+              "description": "Jina API key (optional, for higher rate limits)"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "OutputConfig": {
+      "type": "object",
+      "description": "Output formatting configuration",
+      "properties": {
+        "default_format": {
+          "type": "string",
+          "enum": ["text", "markdown"],
+          "default": "text",
+          "description": "Default output format"
+        },
+        "include_metadata": {
+          "type": "boolean",
+          "default": false,
+          "description": "Include page metadata in output"
+        },
+        "metadata_fields": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["title", "author", "date", "url"],
+          "description": "Metadata fields to include"
+        },
+        "line_width": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 80,
+          "description": "Max line width for text output (0 = unlimited)"
+        },
+        "preserve_links": {
+          "type": "boolean",
+          "default": true,
+          "description": "Keep links in markdown output"
+        }
+      },
+      "additionalProperties": false
+    },
+    "NetworkConfig": {
+      "type": "object",
+      "description": "Network request configuration",
+      "properties": {
+        "timeout": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 30,
+          "description": "Request timeout in seconds"
+        },
+        "user_agent": {
+          "type": "string",
+          "description": "Custom user agent string (overrides browser_agent if set)"
+        },
+        "browser_agent": {
+          "type": "string",
+          "enum": ["auto", "chrome", "firefox", "safari", "edge"],
+          "default": "auto",
+          "description": "Browser user agent type"
+        },
+        "follow_redirects": {
+          "type": "boolean",
+          "default": true,
+          "description": "Follow HTTP redirects"
+        },
+        "max_redirects": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 10,
+          "description": "Maximum number of redirects to follow"
+        },
+        "delay": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "description": "Seconds between requests for multiple URLs"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ParallelConfig": {
+      "type": "object",
+      "description": "Parallel processing configuration",
+      "properties": {
+        "max_concurrency": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 5,
+          "description": "Maximum concurrent requests"
+        },
+        "batch_size": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "description": "Process in batches of N (0 = all at once)"
+        },
+        "show_progress": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show progress bar for multiple URLs"
+        },
+        "fail_fast": {
+          "type": "boolean",
+          "default": false,
+          "description": "Stop on first error"
+        },
+        "max_memory_mb": {
+          "type": "integer",
+          "minimum": 64,
+          "default": 512,
+          "description": "Maximum memory usage in MB"
+        },
+        "cleanup_interval": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 30,
+          "description": "Clean up resources every N seconds"
+        }
+      },
+      "additionalProperties": false
+    },
+    "PipeConfig": {
+      "type": "object",
+      "description": "Pipe handling configuration",
+      "properties": {
+        "buffer_size": {
+          "type": "integer",
+          "minimum": 256,
+          "default": 4096,
+          "description": "Input buffer size for reading from pipes"
+        },
+        "output_separator": {
+          "type": "string",
+          "default": "---",
+          "description": "Separator between multiple URL outputs"
+        },
+        "null_separator": {
+          "type": "boolean",
+          "default": false,
+          "description": "Use null bytes as separators"
+        },
+        "stream_mode": {
+          "type": "boolean",
+          "default": true,
+          "description": "Process URLs as they arrive (vs batch mode)"
+        }
+      },
+      "additionalProperties": false
+    },
+    "LoggingConfig": {
+      "type": "object",
+      "description": "Logging configuration",
+      "properties": {
+        "level": {
+          "type": "string",
+          "enum": ["debug", "info", "warn", "error"],
+          "default": "info",
+          "description": "Log level"
+        },
+        "file": {
+          "type": "string",
+          "description": "Log file path (empty = stderr only)"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

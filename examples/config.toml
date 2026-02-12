@@ -1,4 +1,7 @@
+"$schema" = "https://raw.githubusercontent.com/byteowlz/schemas/refs/heads/main/scrpr/scrpr.config.schema.json"
+
 # scrpr configuration file
+# Copy to $XDG_CONFIG_HOME/scrpr/config.toml (typically ~/.config/scrpr/config.toml)
 
 [browser]
 # Default browser for cookie extraction

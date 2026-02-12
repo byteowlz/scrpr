@@ -229,34 +229,17 @@ func (cf *ContentFetcher) dismissCookieBanners(timeout time.Duration) []chromedp
 
 	// Try to find and dismiss banners
 	for _, selector := range bannerSelectors {
+		_ = selector // used in close selectors below when chromedp API is fixed
 		tasks = append(tasks, chromedp.ActionFunc(func(ctx context.Context) error {
 			// TODO: Fix chromedp API usage
 			// Check if banner exists - temporarily disabled
 			return nil
-
-			// Try to find accept button within or nearby the banner
-			for _, acceptSelector := range acceptSelectors {
-				if err := chromedp.Click(acceptSelector, chromedp.ByQuery).Do(ctx); err == nil {
-					return nil // Successfully clicked accept button
-				}
-			}
-
-			// If no accept button found, try to close the modal/banner
-			closeSelectors := []string{
-				selector + ` .close`,
-				selector + ` [aria-label="Close"]`,
-				selector + ` button[aria-label="Close"]`,
-			}
-
-			for _, closeSelector := range closeSelectors {
-				if err := chromedp.Click(closeSelector, chromedp.ByQuery).Do(ctx); err == nil {
-					return nil
-				}
-			}
-
-			return nil // No close button found, continue
 		}))
 	}
+
+	// NOTE: The following banner dismissal logic is disabled pending chromedp API fixes.
+	// When re-enabled, it should iterate bannerSelectors and try accept/close buttons.
+	_ = acceptSelectors
 
 	return tasks
 }
