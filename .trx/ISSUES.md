@@ -1,12 +1,8 @@
 # Issues
 
-## Open
-
-### [trx-7fp0] Document extraction backend selection guide (P3, epic)
-Document extraction backend selection guide. Explain when to use readability (default, fast, local), Tavily (better quality, handles JS, API credits), Jina (free, no auth, rate limits). Include comparison table, cost considerations, and example use cases for each backend.
-
 ## Closed
 
+- [trx-7fp0] Document extraction backend selection guide (closed 2026-02-12)
 - [trx-q3wm] Add Jina Reader API backend (closed 2026-02-12)
 - [trx-v9mn] Add Tavily Extract API backend (closed 2026-02-12)
 - [trx-4t9g] Add native sx to scrpr pipeline integration (closed 2026-02-12)
