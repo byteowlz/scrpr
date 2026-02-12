@@ -57,11 +57,14 @@ var (
 	extractBackend     string
 )
 
+const version = "1.1.0"
+
 var rootCmd = &cobra.Command{
-	Use:   "scrpr [urls...]",
-	Short: "Extract main content from websites",
-	Long: `scrpr is a CLI tool that extracts the main content from websites.
-It supports JavaScript rendering, cookie extraction from browsers, and pipe operations.`,
+	Use:     "scrpr [urls...]",
+	Short:   "Extract main content from websites",
+	Long:    `scrpr is a CLI tool that extracts the main content from websites.
+It supports multiple extraction backends, browser cookie integration, and pipe operations.`,
+	Version:       version,
 	RunE:          run,
 	SilenceErrors: true,
 	SilenceUsage:  true,
