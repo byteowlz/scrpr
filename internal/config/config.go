@@ -155,8 +155,22 @@ func Load(configFile string) (*Config, error) {
 		viper.SetConfigName("config")
 
 		// Create config directory if it doesn't exist
+		// Handle broken symlinks by removing them first
+		if fi, err := os.Lstat(configDir); err == nil {
+			if fi.Mode()&os.ModeSymlink != 0 {
+				// It's a symlink - check if it's broken
+				if _, err := os.Stat(configDir); os.IsNotExist(err) {
+					// Broken symlink - remove it
+					os.Remove(configDir)
+				}
+			}
+		}
 		if err := os.MkdirAll(configDir, 0755); err != nil {
-			return cfg, fmt.Errorf("error creating config directory: %w", err)
+			// Non-fatal: we can still use defaults
+			// Only return error if it's not "file exists" (which means dir already exists)
+			if !os.IsExist(err) {
+				return cfg, fmt.Errorf("error creating config directory: %w", err)
+			}
 		}
 	}
 

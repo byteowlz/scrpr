@@ -137,9 +137,17 @@ func initConfig() {
 		viper.SetConfigName("config")
 
 		// Create config directory if it doesn't exist
-		if err := os.MkdirAll(configDir, 0755); err != nil {
+		// Handle broken symlinks by removing them first
+		if fi, lstatErr := os.Lstat(configDir); lstatErr == nil {
+			if fi.Mode()&os.ModeSymlink != 0 {
+				if _, statErr := os.Stat(configDir); os.IsNotExist(statErr) {
+					os.Remove(configDir) // broken symlink
+				}
+			}
+		}
+		if mkdirErr := os.MkdirAll(configDir, 0755); mkdirErr != nil && !os.IsExist(mkdirErr) {
 			if !quiet {
-				fmt.Fprintf(os.Stderr, "Error creating config directory: %v\n", err)
+				fmt.Fprintf(os.Stderr, "Error creating config directory: %v\n", mkdirErr)
 			}
 		}
 	}
