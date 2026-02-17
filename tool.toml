@@ -1,0 +1,136 @@
+# tool.toml - scrpr metadata for byteowlz.com/toolz/scrpr
+
+"$schema" = "https://raw.githubusercontent.com/byteowlz/schemas/refs/heads/main/govnr/tool.schema.json"
+
+name = "scrpr"
+title = "scrpr"
+tagline = "A fast CLI for extracting main content from websites"
+
+description = """
+Extract clean, readable content from any website. Supports multiple extraction backends (local readability, Tavily, Jina Reader), browser cookie integration, batch processing, and full UNIX pipe support.
+
+Output as plain text or Markdown. Pipe from search tools like sx, process URL lists with rate limiting and error resilience, or save each page to its own file.
+
+Built for both humans and AI agents. Use the CLI for quick extraction, pipe for automation, or integrate into content pipelines.
+"""
+
+language = "go"
+category = "toolz"
+version = "1.1.0"
+license = "MIT"
+
+# ============================================================================
+# Installation
+# ============================================================================
+
+[install]
+homebrew = "byteowlz/tap/scrpr"
+aur = "scrpr"
+aur_bin = "scrpr-bin"
+scoop = "byteowlz/scrpr"
+
+# ============================================================================
+# Links
+# ============================================================================
+
+[links]
+github = "https://github.com/byteowlz/scrpr"
+
+# ============================================================================
+# Features
+# ============================================================================
+
+[[features]]
+title = "Multiple Extraction Backends"
+description = "Local readability (default), Tavily Extract API, and Jina Reader API for different site types"
+
+[[features]]
+title = "Clean Content Extraction"
+description = "Readability algorithms with intelligent newline cleaning strip ads, nav, and boilerplate"
+
+[[features]]
+title = "UNIX Pipe Support"
+description = "Full pipe-friendly design, pairs with sx for search-to-content pipelines"
+
+[[features]]
+title = "Multiple Output Formats"
+description = "Plain text or Markdown output with optional metadata"
+
+[[features]]
+title = "Batch Processing"
+description = "Process multiple URLs with progress, rate limiting, concurrency control, and error resilience"
+
+[[features]]
+title = "Browser Cookie Integration"
+description = "Extract cookies from Chrome, Firefox, Safari, and Zen for authenticated content"
+
+# ============================================================================
+# Examples
+# ============================================================================
+
+[[examples]]
+title = "Quick Start"
+language = "bash"
+code = """
+# Extract content from a URL
+scrpr https://example.com
+
+# Output as Markdown
+scrpr https://example.com --format markdown
+
+# Use Jina Reader for JS-heavy sites
+scrpr https://example.com -B jina
+
+# Pipe from sx search
+sx "query" -L -n 5 | scrpr --format markdown
+"""
+
+[[examples]]
+title = "Batch Processing"
+language = "bash"
+code = """
+# Process URLs from a file
+scrpr -f urls.txt --format markdown --progress
+
+# Save each URL to its own file
+scrpr https://a.com https://b.com -o articles/
+
+# Rate limiting and error resilience
+scrpr -f urls.txt --delay 0.5 --continue-on-error
+
+# Quiet pipeline (content only)
+sx "query" -L -n 5 | scrpr -q --format markdown > output.md
+"""
+
+[[examples]]
+title = "Backend Selection"
+language = "bash"
+code = """
+# Local readability (default, no API key)
+scrpr https://example.com
+
+# Tavily for JS-heavy sites (requires API key)
+scrpr https://js-heavy-site.com -B tavily --format markdown
+
+# Jina Reader (free, no auth needed)
+scrpr https://example.com -B jina --format markdown
+"""
+
+# ============================================================================
+# Media
+# ============================================================================
+
+[media]
+# icon = "assets/icon.svg"
+screenshot = "banner.png"
+
+# ============================================================================
+# Metadata
+# ============================================================================
+
+[meta]
+keywords = ["web-scraping", "cli", "content-extraction", "readability", "markdown", "pipe"]
+platforms = ["linux", "macos", "windows"]
+related = ["sx"]
+status = "stable"
+listed = true

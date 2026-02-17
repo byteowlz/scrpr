@@ -16,6 +16,14 @@ builds:
       - linux
       - windows
       - darwin
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+    ldflags:
+      - -s -w -X main.version={{.Version}}
 
 archives:
   - formats: [tar.gz]
@@ -30,12 +38,17 @@ archives:
       - goos: windows
         formats: [zip]
 
+checksum:
+  name_template: "checksums.txt"
+
 changelog:
   sort: asc
   filters:
     exclude:
       - "^docs:"
       - "^test:"
+      - "^ci:"
+      - "^chore:"
 
 release:
   footer: >-
@@ -43,3 +56,43 @@ release:
     ---
 
     Released by [GoReleaser](https://github.com/goreleaser/goreleaser).
+
+# ============================================================================
+# Homebrew tap
+# ============================================================================
+
+brews:
+  - repository:
+      owner: byteowlz
+      name: homebrew-tap
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+    directory: Formula
+    homepage: "https://github.com/byteowlz/scrpr"
+    description: "A fast CLI for extracting main content from websites"
+    license: "MIT"
+    test: |
+      system "#{bin}/scrpr", "--version"
+    install: |
+      bin.install "scrpr"
+
+# ============================================================================
+# AUR (source build)
+# ============================================================================
+
+aurs:
+  - name: scrpr
+    homepage: "https://github.com/byteowlz/scrpr"
+    description: "A fast CLI for extracting main content from websites"
+    maintainers:
+      - "Tommy Falkowski <tommy@byteowlz.com>"
+    license: "MIT"
+    private_key: "{{ .Env.AUR_SSH_PRIVATE_KEY }}"
+    git_url: "ssh://aur@aur.archlinux.org/scrpr.git"
+    depends:
+      - go
+    package: |
+      install -Dm755 scrpr "${pkgdir}/usr/bin/scrpr"
+      install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/scrpr/LICENSE"
+    commit_author:
+      name: byteowlz
+      email: tommy@byteowlz.com
