@@ -58,22 +58,25 @@ release:
     Released by [GoReleaser](https://github.com/goreleaser/goreleaser).
 
 # ============================================================================
-# Homebrew tap
+# Homebrew tap (Cask)
 # ============================================================================
 
-brews:
+homebrew_casks:
   - repository:
       owner: byteowlz
       name: homebrew-tap
       token: "{{ .Env.TAP_GITHUB_TOKEN }}"
-    directory: Formula
     homepage: "https://github.com/byteowlz/scrpr"
     description: "A fast CLI for extracting main content from websites"
     license: "MIT"
-    test: |
-      system "#{bin}/scrpr", "--version"
-    install: |
-      bin.install "scrpr"
+    binaries:
+      - scrpr
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/scrpr"]
+          end
 
 # AUR publishing is handled by dedicated GitHub Actions jobs
 # (publish-aur-bin and publish-aur-source in release.yml)
