@@ -40,7 +40,59 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
-          AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+
+  publish-aur-source:
+    name: Publish to AUR (scrpr)
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+
+      - name: Generate PKGBUILD for scrpr
+        run: |
+          VERSION="${RELEASE_TAG#v}"
+
+          cat > PKGBUILD << 'PKGEOF'
+          # Maintainer: Tommy Falkowski <tommy@byteowlz.com>
+          pkgname=scrpr
+          pkgver=VERSION_PLACEHOLDER
+          pkgrel=1
+          pkgdesc="A fast CLI for extracting main content from websites"
+          arch=('x86_64' 'aarch64')
+          url="https://github.com/byteowlz/scrpr"
+          license=('MIT')
+          provides=('scrpr')
+          conflicts=('scrpr-bin')
+          makedepends=('go')
+          source=("${pkgname}-${pkgver}.tar.gz::https://github.com/byteowlz/scrpr/archive/v${pkgver}.tar.gz")
+          sha256sums=('SKIP')
+
+          build() {
+              cd "${pkgname}-${pkgver}"
+              export CGO_ENABLED=0
+              go build -ldflags="-s -w" -o scrpr ./cmd/scrpr
+          }
+
+          package() {
+              cd "${pkgname}-${pkgver}"
+              install -Dm755 scrpr "${pkgdir}/usr/bin/scrpr"
+              install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+          }
+          PKGEOF
+
+          sed -i "s/VERSION_PLACEHOLDER/${VERSION}/g" PKGBUILD
+
+      - name: Publish scrpr to AUR
+        uses: KSXGitHub/github-actions-deploy-aur@v3.0.1
+        with:
+          pkgname: scrpr
+          pkgbuild: ./PKGBUILD
+          commit_username: byteowlz
+          commit_email: ${{ secrets.AUR_EMAIL }}
+          ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+          commit_message: "Update to ${{ env.RELEASE_TAG }}"
 
   publish-aur-bin:
     name: Publish to AUR (scrpr-bin)
