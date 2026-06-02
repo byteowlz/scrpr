@@ -7,6 +7,10 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/go-shiori/go-readability"
+	"github.com/JohannesKaufmann/html-to-markdown/v2/converter"
+	"github.com/JohannesKaufmann/html-to-markdown/v2/plugin/base"
+	"github.com/JohannesKaufmann/html-to-markdown/v2/plugin/commonmark"
+	"github.com/JohannesKaufmann/html-to-markdown/v2/plugin/table"
 )
 
 type ProcessOptions struct {
@@ -323,120 +327,69 @@ func (cp *ContentProcessor) ToMarkdown(content *ProcessedContent, includeMetadat
 		return md.String()
 	}
 
-	// Convert HTML content to markdown-like format
-	doc, err := goquery.NewDocumentFromReader(strings.NewReader(content.Content))
-	if err != nil {
-		// Fallback to text content if HTML parsing fails
-		md.WriteString(content.TextContent)
+	// Convert HTML content to markdown using battle-tested library
+	htmlContent := content.Content
+	if htmlContent == "" {
+		md.WriteString(cp.CleanNewlines(content.TextContent))
 		return md.String()
 	}
 
-	// Find the body content or use the whole document
-	bodyContent := doc.Find("body")
-	if bodyContent.Length() == 0 {
-		bodyContent = doc.Selection
-	}
+	conv := converter.NewConverter(
+		converter.WithPlugins(
+			base.NewBasePlugin(),
+			commonmark.NewCommonmarkPlugin(),
+			table.NewTablePlugin(),
+		),
+	)
 
-	cp.convertToMarkdown(bodyContent, &md, preserveLinks)
-
-	// If no content was generated, fallback to text content
-	result := md.String()
-	if strings.TrimSpace(result) == strings.TrimSpace(fmt.Sprintf("# %s", content.Title)) {
+	result, err := conv.ConvertString(htmlContent)
+	if err != nil {
+		// Fallback to text content on conversion failure
 		md.WriteString(cp.CleanNewlines(content.TextContent))
-		result = md.String()
+		return md.String()
 	}
 
-	return result
+	// Strip links if not preserving them
+	if !preserveLinks {
+		result = cp.stripMarkdownLinks(result)
+	}
+
+	md.WriteString(cp.CleanNewlines(result))
+	return md.String()
 }
 
-func (cp *ContentProcessor) convertToMarkdown(sel *goquery.Selection, md *strings.Builder, preserveLinks bool) {
-	sel.Contents().Each(func(i int, s *goquery.Selection) {
-		node := s.Get(0)
-		if node.Type == 1 { // Element node
-			tagName := strings.ToLower(node.Data)
-
-			switch tagName {
-			case "h1", "h2", "h3", "h4", "h5", "h6":
-				level := int(tagName[1] - '0')
-				md.WriteString(fmt.Sprintf("%s %s\n\n", strings.Repeat("#", level), strings.TrimSpace(s.Text())))
-			case "p":
-				// Process paragraph content recursively to handle nested elements
-				var pContent strings.Builder
-				cp.convertToMarkdown(s, &pContent, preserveLinks)
-				text := strings.TrimSpace(pContent.String())
-				if text != "" {
-					md.WriteString(fmt.Sprintf("%s\n\n", text))
-				}
-			case "br":
-				md.WriteString("\n")
-			case "a":
-				if preserveLinks {
-					href, exists := s.Attr("href")
-					if exists && href != "" {
-						md.WriteString(fmt.Sprintf("[%s](%s)", s.Text(), href))
-					} else {
-						md.WriteString(s.Text())
+// stripMarkdownLinks converts [text](url) -> text
+func (cp *ContentProcessor) stripMarkdownLinks(md string) string {
+	var result strings.Builder
+	i := 0
+	for i < len(md) {
+		if md[i] == '[' {
+			// Find closing ]
+			end := i + 1
+			for end < len(md) && md[end] != ']' {
+				end++
+			}
+			if end < len(md) && md[end] == ']' {
+				// Check if followed by (link)
+				linkStart := end + 1
+				if linkStart < len(md) && md[linkStart] == '(' {
+					linkEnd := linkStart + 1
+					for linkEnd < len(md) && md[linkEnd] != ')' {
+						linkEnd++
 					}
-				} else {
-					md.WriteString(s.Text())
-				}
-			case "strong", "b":
-				md.WriteString(fmt.Sprintf("**%s**", s.Text()))
-			case "em", "i":
-				md.WriteString(fmt.Sprintf("*%s*", s.Text()))
-			case "code":
-				md.WriteString(fmt.Sprintf("`%s`", s.Text()))
-			case "pre":
-				md.WriteString(fmt.Sprintf("```\n%s\n```\n\n", s.Text()))
-			case "blockquote":
-				lines := strings.Split(s.Text(), "\n")
-				for _, line := range lines {
-					if strings.TrimSpace(line) != "" {
-						md.WriteString(fmt.Sprintf("> %s\n", strings.TrimSpace(line)))
+					if linkEnd < len(md) && md[linkEnd] == ')' {
+						// It's a link: write just the text
+						result.WriteString(md[i+1 : end])
+						i = linkEnd + 1
+						continue
 					}
 				}
-				md.WriteString("\n")
-			case "ul", "ol":
-				cp.convertList(s, md, tagName == "ol", 0)
-			case "img":
-				if src, exists := s.Attr("src"); exists {
-					alt := s.AttrOr("alt", "")
-					md.WriteString(fmt.Sprintf("![%s](%s)\n\n", alt, src))
-				}
-			case "div", "section", "article", "main", "header", "footer", "aside", "nav":
-				// For container elements, just process their contents
-				cp.convertToMarkdown(s, md, preserveLinks)
-			default:
-				// For unknown elements, process their contents
-				cp.convertToMarkdown(s, md, preserveLinks)
-			}
-		} else if node.Type == 3 { // Text node
-			text := strings.TrimSpace(node.Data)
-			if text != "" {
-				md.WriteString(text)
 			}
 		}
-	})
-}
-
-func (cp *ContentProcessor) convertList(sel *goquery.Selection, md *strings.Builder, ordered bool, depth int) {
-	prefix := strings.Repeat("  ", depth)
-
-	sel.Find("li").Each(func(i int, s *goquery.Selection) {
-		marker := "- "
-		if ordered {
-			marker = fmt.Sprintf("%d. ", i+1)
-		}
-
-		md.WriteString(fmt.Sprintf("%s%s%s\n", prefix, marker, strings.TrimSpace(s.Text())))
-
-		// Handle nested lists
-		s.Find("ul, ol").Each(func(j int, nested *goquery.Selection) {
-			cp.convertList(nested, md, nested.Is("ol"), depth+1)
-		})
-	})
-
-	md.WriteString("\n")
+		result.WriteByte(md[i])
+		i++
+	}
+	return result.String()
 }
 
 func (cp *ContentProcessor) wrapText(text string, lineWidth int) string {

@@ -371,7 +371,24 @@ func processURL(url string, cfg *config.Config) (*ProcessResult, error) {
 	// Check if we should use an alternative extraction backend
 	backend := extractBackend
 	if backend == "" || backend == "readability" {
-		return processURLLocal(ctx, url, cfg)
+		result, err := processURLLocal(ctx, url, cfg)
+		if err == nil {
+			return result, nil
+		}
+
+		// Auto-escalate to Jina on local failure if no backend was explicitly chosen
+		if backend == "" && !quiet {
+			fmt.Fprintf(os.Stderr, "Local extraction failed for %s, trying Jina fallback...\n", url)
+		}
+		if backend == "" {
+			jinaResult, jinaErr := processURLBackend(ctx, url, cfg, "jina")
+			if jinaErr == nil {
+				return jinaResult, nil
+			}
+			// Return original error if Jina also fails
+			return nil, err
+		}
+		return nil, err
 	}
 
 	return processURLBackend(ctx, url, cfg, backend)
