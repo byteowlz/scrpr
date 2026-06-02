@@ -18,6 +18,27 @@ const (
 	FetchModeJS     FetchMode = "javascript"
 )
 
+const defaultMaxResponseSize = 5 << 20 // 5MB
+
+// RetryConfig controls retry behavior for the fetcher
+type RetryConfig struct {
+	MaxRetries     int           // maximum retry attempts (default 3)
+	BaseDelay      time.Duration // base delay between retries (default 1s)
+	MaxDelay       time.Duration // max delay between retries (default 30s)
+	RetryStatuses  []int         // HTTP status codes that trigger a retry
+	RetryOnNetwork bool          // retry on network errors
+}
+
+func DefaultRetryConfig() RetryConfig {
+	return RetryConfig{
+		MaxRetries:     3,
+		BaseDelay:      1 * time.Second,
+		MaxDelay:       30 * time.Second,
+		RetryStatuses:  []int{429, 502, 503, 504},
+		RetryOnNetwork: true,
+	}
+}
+
 type FetchOptions struct {
 	Mode            FetchMode
 	Timeout         time.Duration
@@ -27,14 +48,18 @@ type FetchOptions struct {
 	SkipBanners     bool
 	BannerTimeout   time.Duration
 	WaitForSelector string
+	MaxResponseSize int64  // 0 = default 5MB, -1 = unlimited
+	Format          string // "text" | "markdown" | "html"
+	Retry           RetryConfig
 }
 
 type FetchResult struct {
-	HTML     string
-	Title    string
-	URL      string
-	UsedJS   bool
-	Metadata map[string]string
+	HTML        string
+	Title       string
+	URL         string
+	UsedJS      bool
+	Metadata    map[string]string
+	ContentType string // MIME type of the response
 }
 
 type ContentFetcher struct {
@@ -276,16 +301,17 @@ func (cf *ContentFetcher) needsJSRendering(html string) bool {
 }
 
 func (cf *ContentFetcher) extractTitle(html string) string {
-	start := strings.Index(strings.ToLower(html), "<title")
-	if start == -1 {
+	lowerHTML := strings.ToLower(html)
+	titleStart := strings.Index(lowerHTML, "<title")
+	if titleStart == -1 {
 		return ""
 	}
 
-	start = strings.Index(html[start:], ">")
+	start := strings.Index(html[titleStart:], ">")
 	if start == -1 {
 		return ""
 	}
-	start += start
+	start += titleStart + 1
 
 	end := strings.Index(strings.ToLower(html[start:]), "</title>")
 	if end == -1 {
@@ -297,16 +323,16 @@ func (cf *ContentFetcher) extractTitle(html string) string {
 
 func (cf *ContentFetcher) extractBodyContent(html string) string {
 	lowerHTML := strings.ToLower(html)
-	start := strings.Index(lowerHTML, "<body")
-	if start == -1 {
+	bodyStart := strings.Index(lowerHTML, "<body")
+	if bodyStart == -1 {
 		return html
 	}
 
-	start = strings.Index(html[start:], ">")
+	start := strings.Index(html[bodyStart:], ">")
 	if start == -1 {
 		return html
 	}
-	start += start + 1
+	start += bodyStart + 1
 
 	end := strings.Index(lowerHTML[start:], "</body>")
 	if end == -1 {

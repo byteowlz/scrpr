@@ -405,11 +405,21 @@ func processURLLocal(ctx context.Context, url string, cfg *config.Config) (*Proc
 		UserAgent:    userAgent,
 		BrowserAgent: effectiveBrowserAgent,
 		Cookies:      nil,
+		Format:       outputFormat,
 	}
 
 	fetchResult, err := simpleFetcher.FetchStatic(ctx, url, fetchOpts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch content: %w", err)
+	}
+
+	// Short-circuit image responses
+	if isImageContent(fetchResult.ContentType) {
+		return &ProcessResult{
+			URL:     url,
+			Title:   fetchResult.Title,
+			Content: fmt.Sprintf("Image content detected (%s). scrpr extracts text content only.", fetchResult.ContentType),
+		}, nil
 	}
 
 	// Process content
@@ -493,6 +503,15 @@ type ProcessResult struct {
 	URL     string
 	Title   string
 	Content string
+}
+
+// isImageContent checks if a Content-Type header indicates an image
+func isImageContent(contentType string) bool {
+	if contentType == "" {
+		return false
+	}
+	mime := strings.Split(contentType, ";")[0]
+	return strings.HasPrefix(strings.TrimSpace(mime), "image/")
 }
 
 func collectURLs(args []string) ([]string, error) {
