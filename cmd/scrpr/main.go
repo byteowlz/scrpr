@@ -57,7 +57,9 @@ var (
 	extractBackend     string
 )
 
-const version = "1.1.0"
+// version is overridden at release time via -ldflags "-X main.version=...".
+// It MUST be a var, not a const: Go's linker `-X` can only stamp variables.
+var version = "dev"
 
 var rootCmd = &cobra.Command{
 	Use:     "scrpr [urls...]",
