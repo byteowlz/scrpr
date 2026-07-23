@@ -238,40 +238,44 @@ func (cp *ContentProcessor) removeHTMLComments(html string) string {
 	return html
 }
 
+// adTokens are id/class tokens that mark an element as advertising. They are
+// matched against delimiter-separated tokens (not substrings) so that words
+// like "readability" or "header" are not mistaken for "ad".
+var adTokens = map[string]bool{
+	"ad":            true,
+	"ads":           true,
+	"advert":        true,
+	"adsense":       true,
+	"adsystem":      true,
+	"advertisement": true,
+	"advertising":   true,
+	"sponsor":       true,
+	"sponsored":     true,
+	"promo":         true,
+}
+
+func hasAdToken(attr string) bool {
+	tokens := strings.FieldsFunc(strings.ToLower(attr), func(r rune) bool {
+		return r == '-' || r == '_' || r == ' '
+	})
+	for _, tok := range tokens {
+		if adTokens[tok] {
+			return true
+		}
+	}
+	return false
+}
+
 func (cp *ContentProcessor) removeAds(content string) string {
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(content))
 	if err != nil {
 		return content
 	}
 
-	// Common ad selectors
-	adSelectors := []string{
-		"[id*='ad']",
-		"[class*='ad']",
-		"[id*='advertisement']",
-		"[class*='advertisement']",
-		"[id*='sponsor']",
-		"[class*='sponsor']",
-		"[id*='promo']",
-		"[class*='promo']",
-		".google-ads",
-		".adsystem",
-		".ad-container",
-		".advertisement",
-		".sponsored",
-		".banner-ad",
-	}
-
-	for _, selector := range adSelectors {
-		doc.Find(selector).Remove()
-	}
-
-	// Remove elements with ad-related text
-	doc.Find("*").Each(func(i int, s *goquery.Selection) {
-		text := strings.ToLower(s.Text())
-		if strings.Contains(text, "advertisement") ||
-			strings.Contains(text, "sponsored content") ||
-			(strings.Contains(text, "ad") && len(strings.TrimSpace(s.Text())) < 50) {
+	doc.Find("[id], [class]").Each(func(i int, s *goquery.Selection) {
+		id, _ := s.Attr("id")
+		class, _ := s.Attr("class")
+		if hasAdToken(id) || hasAdToken(class) {
 			s.Remove()
 		}
 	})
