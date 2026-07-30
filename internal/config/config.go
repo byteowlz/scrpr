@@ -216,7 +216,7 @@ func (c *Config) CreateExampleConfig(configPath string) error {
 		return fmt.Errorf("error creating config directory: %w", err)
 	}
 
-	exampleContent := `"$schema" = "https://raw.githubusercontent.com/byteowlz/schemas/refs/heads/main/scrpr/scrpr.config.schema.json"
+	exampleContent := `#:schema https://raw.githubusercontent.com/byteowlz/schemas/refs/heads/main/scrpr/scrpr.config.schema.json
 
 # scrpr configuration file
 
