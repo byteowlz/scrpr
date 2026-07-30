@@ -22,39 +22,39 @@ import (
 
 // Exit codes for granular error handling
 const (
-	ExitSuccess       = 0
-	ExitNetworkError  = 1
-	ExitProcessError  = 2
-	ExitInvalidInput  = 3
-	ExitConfigError   = 4
-	ExitFileIOError   = 5
-	ExitPartialError  = 6 // some URLs failed, some succeeded
+	ExitSuccess      = 0
+	ExitNetworkError = 1
+	ExitProcessError = 2
+	ExitInvalidInput = 3
+	ExitConfigError  = 4
+	ExitFileIOError  = 5
+	ExitPartialError = 6 // some URLs failed, some succeeded
 )
 
 var (
-	cfgFile            string
-	outputFile         string
-	outputFormat       string
-	browser            string
-	browserAgent       string
-	javascript         bool
-	noJS               bool
-	skipBanners        bool
-	timeout            int
-	concurrency        int
-	batchSize          int
-	progress           bool
-	separator          string
-	nullSeparator      bool
-	userAgent          string
-	includeMetadata    bool
-	verbose            bool
-	quiet              bool
-	file               string
-	continueOnError    bool
-	noFollowRedirects  bool
-	delay              float64
-	extractBackend     string
+	cfgFile           string
+	outputFile        string
+	outputFormat      string
+	browser           string
+	browserAgent      string
+	javascript        bool
+	noJS              bool
+	skipBanners       bool
+	timeout           int
+	concurrency       int
+	batchSize         int
+	progress          bool
+	separator         string
+	nullSeparator     bool
+	userAgent         string
+	includeMetadata   bool
+	verbose           bool
+	quiet             bool
+	file              string
+	continueOnError   bool
+	noFollowRedirects bool
+	delay             float64
+	extractBackend    string
 )
 
 // version is overridden at release time via -ldflags "-X main.version=...".
@@ -62,9 +62,9 @@ var (
 var version = "dev"
 
 var rootCmd = &cobra.Command{
-	Use:     "scrpr [urls...]",
-	Short:   "Extract main content from websites",
-	Long:    `scrpr is a CLI tool that extracts the main content from websites.
+	Use:   "scrpr [urls...]",
+	Short: "Extract main content from websites",
+	Long: `scrpr is a CLI tool that extracts the main content from websites.
 It supports multiple extraction backends, browser cookie integration, and pipe operations.`,
 	Version:       version,
 	RunE:          run,

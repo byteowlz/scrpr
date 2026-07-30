@@ -35,7 +35,7 @@ type mockExtractorBackend struct {
 }
 
 func (m *mockExtractorBackend) Name() string      { return m.name }
-func (m *mockExtractorBackend) IsAvailable() bool  { return m.available }
+func (m *mockExtractorBackend) IsAvailable() bool { return m.available }
 func (m *mockExtractorBackend) Extract(ctx context.Context, url string, format string) (*ExtractResult, error) {
 	if m.err != nil {
 		return nil, m.err
