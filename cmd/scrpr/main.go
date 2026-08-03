@@ -373,6 +373,17 @@ func processURL(url string, cfg *config.Config) (*ProcessResult, error) {
 	// Check if we should use an alternative extraction backend
 	backend := extractBackend
 	if backend == "" || backend == "readability" {
+		// Auto-route X/Twitter status URLs to fxtwitter: public, no-key, and
+		// login-gated for local/jina extraction. Falls through on failure.
+		if backend == "" && extractor.IsTweetURL(url) {
+			fxResult, fxErr := processURLBackend(ctx, url, cfg, "fxtwitter")
+			if fxErr == nil {
+				return fxResult, nil
+			}
+			if !quiet {
+				fmt.Fprintf(os.Stderr, "fxtwitter failed for %s, trying local...\n", url)
+			}
+		}
 		result, err := processURLLocal(ctx, url, cfg)
 		if err == nil {
 			return result, nil

@@ -47,6 +47,11 @@ func (f *FxtwitterBackend) IsAvailable() bool { return true }
 // tweetURLRe matches x.com/twitter.com status URLs.
 var tweetURLRe = regexp.MustCompile(`https?://(?:x|twitter)\.com/([^/]+)/status/(\d+)`)
 
+// IsTweetURL reports whether url is an x.com/twitter.com status URL.
+func IsTweetURL(url string) bool {
+	return tweetURLRe.MatchString(url)
+}
+
 // fxtweetResponse is the fxtwitter API JSON shape (subset).
 type fxtweetResponse struct {
 	Code  int `json:"code"`
