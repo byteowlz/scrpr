@@ -34,6 +34,10 @@ min_content_length = 100   # Minimum content length to consider valid
 remove_ads = true          # Remove advertisement blocks
 clean_html = true          # Clean HTML before processing
 
+# Self-hosted defuddle proxy (public defuddle.com is a web UI, not an API)
+[extraction.defuddle]
+base_url = ""   # e.g. http://localhost:8890
+
 [output]
 # Default output format
 default_format = "text"    # text, markdown

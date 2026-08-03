@@ -39,13 +39,16 @@ type ExtractionConfig struct {
 	MinContentLength  int    `toml:"min_content_length"`
 	RemoveAds         bool   `toml:"remove_ads"`
 	CleanHTML         bool   `toml:"clean_html"`
-	Backend           string `toml:"backend"` // readability (default), tavily, jina
+	Backend           string `toml:"backend"` // readability (default), tavily, jina, fxtwitter, vxtwitter, defuddle
 
 	// Tavily extraction settings
 	Tavily TavilyExtractionConfig `toml:"tavily"`
 
 	// Jina extraction settings
 	Jina JinaExtractionConfig `toml:"jina"`
+
+	// Defuddle proxy settings
+	Defuddle DefuddleExtractionConfig `toml:"defuddle"`
 }
 
 // TavilyExtractionConfig holds Tavily Extract API settings
@@ -57,6 +60,11 @@ type TavilyExtractionConfig struct {
 // JinaExtractionConfig holds Jina Reader API settings
 type JinaExtractionConfig struct {
 	APIKey string `toml:"api_key"` // optional, for higher rate limits
+}
+
+// DefuddleExtractionConfig holds self-hosted defuddle proxy settings
+type DefuddleExtractionConfig struct {
+	BaseURL string `toml:"base_url"` // e.g. http://localhost:8890
 }
 
 type OutputConfig struct {

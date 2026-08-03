@@ -118,7 +118,7 @@ func init() {
 	rootCmd.Flags().Float64Var(&delay, "delay", 0, "delay in seconds between requests (rate limiting)")
 
 	// Extraction backend flags
-	rootCmd.Flags().StringVarP(&extractBackend, "extract-backend", "B", "", "extraction backend (readability, tavily, jina)")
+	rootCmd.Flags().StringVarP(&extractBackend, "extract-backend", "B", "", "extraction backend (readability, tavily, jina, fxtwitter, vxtwitter, defuddle)")
 
 	// System flags
 	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose logging")
@@ -502,8 +502,24 @@ func processURLBackend(ctx context.Context, url string, cfg *config.Config, back
 			time.Duration(timeout)*time.Second,
 		)
 
+	case "fxtwitter", "vxtwitter":
+		backend = extractor.NewFxtwitterBackend(
+			backendName,
+			time.Duration(timeout)*time.Second,
+		)
+
+	case "defuddle":
+		baseURL := cfg.Extraction.Defuddle.BaseURL
+		if baseURL == "" {
+			return nil, fmt.Errorf("defuddle: base_url not configured (set extraction.defuddle.base_url in config)")
+		}
+		backend = extractor.NewDefuddleBackend(
+			baseURL,
+			time.Duration(timeout)*time.Second,
+		)
+
 	default:
-		return nil, fmt.Errorf("unknown extraction backend: %s (available: readability, tavily, jina)", backendName)
+		return nil, fmt.Errorf("unknown extraction backend: %s (available: readability, tavily, jina, fxtwitter, vxtwitter, defuddle)", backendName)
 	}
 
 	result, err := backend.Extract(ctx, url, outputFormat)

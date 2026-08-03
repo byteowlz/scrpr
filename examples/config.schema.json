@@ -82,7 +82,7 @@
       "properties": {
         "backend": {
           "type": "string",
-          "enum": ["readability", "tavily", "jina"],
+          "enum": ["readability", "tavily", "jina", "fxtwitter", "vxtwitter", "defuddle"],
           "default": "readability",
           "description": "Extraction backend"
         },
@@ -153,6 +153,17 @@
             "api_key": {
               "type": "string",
               "description": "Jina API key (optional, for higher rate limits)"
+            }
+          },
+          "additionalProperties": false
+        },
+        "defuddle": {
+          "type": "object",
+          "description": "Self-hosted defuddle proxy settings",
+          "properties": {
+            "base_url": {
+              "type": "string",
+              "description": "Proxy base URL, e.g. http://localhost:8890"
             }
           },
           "additionalProperties": false
