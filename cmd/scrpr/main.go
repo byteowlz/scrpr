@@ -322,7 +322,7 @@ func run(cmd *cobra.Command, args []string) error {
 			}
 		} else {
 			// Single output mode
-			if includeMetadata && len(result.Metadata) > 0 {
+			if len(result.Metadata) > 0 {
 				fmt.Fprintln(output, renderMetadata(result.Metadata))
 			}
 			fmt.Fprint(output, result.Content)
