@@ -16,7 +16,7 @@ Built for both humans and AI agents. Use the CLI for quick extraction, pipe for 
 
 language = "go"
 category = "toolz"
-version = "1.1.0"
+version = "1.2.0"
 license = "MIT"
 
 # ============================================================================
