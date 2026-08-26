@@ -337,6 +337,9 @@ func run(cmd *cobra.Command, args []string) error {
 			}
 		} else {
 			// Single output mode
+			if len(result.Metadata) > 0 {
+				fmt.Fprintln(output, renderMetadata(result.Metadata))
+			}
 			fmt.Fprint(output, result.Content)
 
 			// Add separator for multiple URLs (but not after the last one)
@@ -555,16 +558,38 @@ func processURLBackend(ctx context.Context, url string, cfg *config.Config, back
 	}
 
 	return &ProcessResult{
-		URL:     result.URL,
-		Title:   result.Title,
-		Content: result.Content,
+		URL:      result.URL,
+		Title:    result.Title,
+		Content:  result.Content,
+		Metadata: result.Metadata,
 	}, nil
 }
 
 type ProcessResult struct {
-	URL     string
-	Title   string
-	Content string
+	URL      string
+	Title    string
+	Content  string
+	Metadata map[string]string
+}
+
+// renderMetadata formats a metadata map as an aligned key: value header.
+// Order matters for readability; known tweet keys are prioritized.
+func renderMetadata(md map[string]string) string {
+	order := []string{
+		"url", "screen_name", "name", "description",
+		"likes", "retweets", "replies", "bookmarks", "views",
+		"created_at", "lang", "replying_to",
+		"quote_author", "quote_text", "note_tweet",
+	}
+	var b strings.Builder
+	b.WriteString("--- metadata ---\n")
+	for _, k := range order {
+		if v, ok := md[k]; ok && v != "" {
+			b.WriteString(fmt.Sprintf("%-14s %s\n", k, v))
+		}
+	}
+	b.WriteString("--- end ---\n")
+	return b.String()
 }
 
 // isImageContent checks if a Content-Type header indicates an image

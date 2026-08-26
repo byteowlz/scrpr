@@ -56,7 +56,30 @@ func IsTweetURL(url string) bool {
 type fxtweetResponse struct {
 	Code  int `json:"code"`
 	Tweet struct {
-		Text    string `json:"text"`
+		Text   string `json:"text"`
+		Author struct {
+			ScreenName  string `json:"screen_name"`
+			Name        string `json:"name"`
+			Followers   int64  `json:"followers"`
+			Verified    bool   `json:"verified"`
+			Description string `json:"description"`
+		} `json:"author"`
+		Replies    int64  `json:"replies"`
+		Retweets   int64  `json:"retweets"`
+		Likes      int64  `json:"likes"`
+		Bookmarks  int64  `json:"bookmarks"`
+		Views      int64  `json:"views"`
+		CreatedAt  string `json:"created_at"`
+		Lang       string `json:"lang"`
+		ReplyingTo string `json:"replying_to"`
+		Quote      *struct {
+			URL    string `json:"url"`
+			Text   string `json:"text"`
+			Author struct {
+				ScreenName string `json:"screen_name"`
+				Name       string `json:"name"`
+			} `json:"author"`
+		} `json:"quote"`
 		Article *struct {
 			Title       string `json:"title"`
 			PreviewText string `json:"preview_text"`
@@ -124,5 +147,31 @@ func (f *FxtwitterBackend) Extract(ctx context.Context, url string, format strin
 		content = stripBasicMarkdown(content)
 	}
 
-	return &ExtractResult{URL: url, Title: title, Content: content}, nil
+	md := map[string]string{
+		"url":         url,
+		"screen_name": "@" + fr.Tweet.Author.ScreenName,
+		"name":        fr.Tweet.Author.Name,
+		"followers":   fmt.Sprintf("%d", fr.Tweet.Author.Followers),
+		"verified":    fmt.Sprintf("%t", fr.Tweet.Author.Verified),
+		"description": fr.Tweet.Author.Description,
+		"likes":       fmt.Sprintf("%d", fr.Tweet.Likes),
+		"retweets":    fmt.Sprintf("%d", fr.Tweet.Retweets),
+		"replies":     fmt.Sprintf("%d", fr.Tweet.Replies),
+		"bookmarks":   fmt.Sprintf("%d", fr.Tweet.Bookmarks),
+		"views":       fmt.Sprintf("%d", fr.Tweet.Views),
+		"created_at":  fr.Tweet.CreatedAt,
+		"lang":        fr.Tweet.Lang,
+	}
+	if fr.Tweet.ReplyingTo != "" {
+		md["replying_to"] = fr.Tweet.ReplyingTo
+	}
+	if fr.Tweet.Quote != nil {
+		md["quote_author"] = "@" + fr.Tweet.Quote.Author.ScreenName
+		md["quote_text"] = fr.Tweet.Quote.Text
+	}
+	if fr.Tweet.Article != nil {
+		md["note_tweet"] = "true"
+	}
+
+	return &ExtractResult{URL: url, Title: title, Content: content, Metadata: md}, nil
 }

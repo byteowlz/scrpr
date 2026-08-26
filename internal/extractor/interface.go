@@ -4,9 +4,10 @@ import "context"
 
 // ExtractResult holds the output of a content extraction
 type ExtractResult struct {
-	URL     string
-	Title   string
-	Content string // Extracted content (plain text or markdown depending on backend)
+	URL      string
+	Title    string
+	Content  string            // Extracted content (plain text or markdown depending on backend)
+	Metadata map[string]string // Optional rich metadata (author, counts, quote, ...)
 }
 
 // Backend is the interface for content extraction backends
