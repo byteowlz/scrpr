@@ -170,6 +170,7 @@ Flags:
       --timeout int              request timeout in seconds (default 30)
       --include-metadata         include page metadata
       --user-agent string        custom user agent
+      --ua string                alias for --user-agent
       --browser-agent string     browser agent type
       --continue-on-error        continue on URL failures
       --no-follow-redirects      disable HTTP redirects
@@ -182,6 +183,18 @@ Flags:
 ## Configuration
 
 Config at `$XDG_CONFIG_HOME/scrpr/config.toml` (auto-created on first run).
+
+### Bot UA Fallback
+
+When the readability backend receives a blocking status (401/402/403/429/999)
+and no explicit `--user-agent` was set, scrpr automatically retries with
+well-known AI crawler user agents (`Claude-User`, `OpenAI File Downloader`,
+`XaiImageApiFetch/1.0`, Googlebot). Many sites whitelist these agents while
+blocking generic traffic. Set an explicit `--user-agent` to disable this.
+
+The working UA per domain is remembered in
+`$XDG_STATE_HOME/scrpr/ua-memory.json` (fallback `~/.local/state`) so future
+requests to that domain start with the known-good agent.
 
 ```toml
 [extraction]

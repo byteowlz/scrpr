@@ -274,3 +274,66 @@ func TestShouldRetryStatus(t *testing.T) {
 		t.Error("expected 404 to not be retryable")
 	}
 }
+
+func TestFetchStatic_BotUAFallback(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ua := r.Header.Get("User-Agent")
+		switch ua {
+		case "Claude-User":
+			w.WriteHeader(http.StatusForbidden)
+		case "OpenAI File Downloader":
+			w.Header().Set("Content-Type", "text/html")
+			fmt.Fprint(w, `<html><body><p>ok</p></body></html>`)
+		default:
+			w.WriteHeader(http.StatusForbidden)
+		}
+	}))
+	defer server.Close()
+
+	sf := NewSimpleFetcher()
+	result, err := sf.FetchStatic(context.Background(), server.URL, FetchOptions{
+		Mode:  FetchModeStatic,
+		Retry: RetryConfig{RetryOnNetwork: false},
+	})
+	if err != nil {
+		t.Fatalf("expected fallback to succeed, got error: %v", err)
+	}
+	if !strings.Contains(result.HTML, "ok") {
+		t.Errorf("unexpected body: %q", result.HTML)
+	}
+}
+
+func TestFetchStatic_ExplicitUANoFallback(t *testing.T) {
+	var uas []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		uas = append(uas, r.Header.Get("User-Agent"))
+		w.WriteHeader(http.StatusForbidden)
+	}))
+	defer server.Close()
+
+	sf := NewSimpleFetcher()
+	_, err := sf.FetchStatic(context.Background(), server.URL, FetchOptions{
+		Mode:      FetchModeStatic,
+		UserAgent: "custom-agent",
+		Retry:     RetryConfig{RetryOnNetwork: false},
+	})
+	if err == nil {
+		t.Fatal("expected error when explicit UA is blocked")
+	}
+	if len(uas) != 1 || uas[0] != "custom-agent" {
+		t.Errorf("expected exactly one request with custom UA, got %v", uas)
+	}
+}
+
+func TestIsBlockingStatus(t *testing.T) {
+	for _, s := range []int{401, 402, 403, 429, 999} {
+		if !isBlockingStatus(s) {
+			t.Errorf("isBlockingStatus(%d) = false, want true", s)
+		}
+	}
+	for _, s := range []int{200, 404, 500} {
+		if isBlockingStatus(s) {
+			t.Errorf("isBlockingStatus(%d) = true, want false", s)
+		}
+	}
+}

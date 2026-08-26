@@ -110,6 +110,7 @@ func init() {
 	// Content processing flags
 	rootCmd.Flags().BoolVar(&includeMetadata, "include-metadata", false, "include page metadata in output")
 	rootCmd.Flags().StringVar(&userAgent, "user-agent", "", "custom user agent string")
+	rootCmd.Flags().StringVar(&userAgent, "ua", "", "alias for --user-agent")
 	rootCmd.Flags().StringVar(&browserAgent, "browser-agent", "", "browser agent type (auto|chrome|firefox|safari|edge)")
 
 	// Pipeline flags
@@ -197,6 +198,20 @@ func getDefaultConfigPath() string {
 		configHome = filepath.Join(home, ".config")
 	}
 	return filepath.Join(configHome, "scrpr", "config.toml")
+}
+
+// uaMemoryPath returns the state file remembering which user agent worked
+// per domain: $XDG_STATE_HOME/scrpr/ua-memory.json (fallback ~/.local/state).
+func uaMemoryPath() string {
+	stateHome := os.Getenv("XDG_STATE_HOME")
+	if stateHome == "" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return ""
+		}
+		stateHome = filepath.Join(home, ".local", "state")
+	}
+	return filepath.Join(stateHome, "scrpr", "ua-memory.json")
 }
 
 func run(cmd *cobra.Command, args []string) error {
@@ -411,6 +426,7 @@ func processURL(url string, cfg *config.Config) (*ProcessResult, error) {
 func processURLLocal(ctx context.Context, url string, cfg *config.Config) (*ProcessResult, error) {
 	// Create fetcher and processor
 	simpleFetcher := fetcher.NewSimpleFetcher()
+	simpleFetcher.SetUAMemory(uaMemoryPath())
 
 	// Configure redirect policy
 	if noFollowRedirects {

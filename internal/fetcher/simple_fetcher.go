@@ -13,6 +13,7 @@ import (
 type SimpleFetcher struct {
 	client          *http.Client
 	userAgentSelect *UserAgentSelector
+	uaMemory        *uaMemory
 }
 
 func NewSimpleFetcher() *SimpleFetcher {
@@ -21,6 +22,13 @@ func NewSimpleFetcher() *SimpleFetcher {
 			Timeout: 30 * time.Second,
 		},
 		userAgentSelect: NewUserAgentSelector(),
+	}
+}
+
+// SetUAMemory enables per-domain user agent memory persisted at path.
+func (sf *SimpleFetcher) SetUAMemory(path string) {
+	if path != "" {
+		sf.uaMemory = newUAMemory(path)
 	}
 }
 
@@ -46,9 +54,22 @@ func (sf *SimpleFetcher) FetchStatic(ctx context.Context, url string, opts Fetch
 		maxSize = defaultMaxResponseSize
 	}
 
-	var lastErr error
+	// Bot-UA fallback is disabled when the user pinned an explicit UA.
+	botFallback := opts.UserAgent == ""
 
-	for attempt := 0; attempt <= retryConfig.MaxRetries; attempt++ {
+	var lastErr error
+	// fallbackIdx indexes BotFallbackUAs; -1 means use the regular selection.
+	fallbackIdx := -1
+	host := hostFromURL(url)
+
+	// Skip straight to a UA that worked for this domain before.
+	if botFallback && sf.uaMemory != nil && host != "" {
+		if idx := indexOfBotUA(sf.uaMemory.Get(host)); idx >= 0 {
+			fallbackIdx = idx
+		}
+	}
+
+	for attempt := 0; attempt <= retryConfig.MaxRetries+len(BotFallbackUAs); attempt++ {
 		if attempt > 0 {
 			delay := sf.backoffDelay(attempt, retryConfig.BaseDelay, retryConfig.MaxDelay)
 			select {
@@ -58,7 +79,12 @@ func (sf *SimpleFetcher) FetchStatic(ctx context.Context, url string, opts Fetch
 			}
 		}
 
-		req, err := sf.buildRequest(ctx, url, opts, attempt)
+		uaOverride := ""
+		if botFallback && fallbackIdx >= 0 && fallbackIdx < len(BotFallbackUAs) {
+			uaOverride = BotFallbackUAs[fallbackIdx]
+		}
+
+		req, err := sf.buildRequest(ctx, url, opts, uaOverride)
 		if err != nil {
 			return nil, err
 		}
@@ -91,6 +117,15 @@ func (sf *SimpleFetcher) FetchStatic(ctx context.Context, url string, opts Fetch
 				continue
 			}
 			return nil, lastErr
+		}
+
+		// Blocking status: rotate through bot UAs before giving up. Many sites
+		// whitelist AI crawler agents while blocking generic browser traffic.
+		if botFallback && isBlockingStatus(resp.StatusCode) && fallbackIdx < len(BotFallbackUAs)-1 {
+			resp.Body.Close()
+			lastErr = fmt.Errorf("HTTP error: %d %s", resp.StatusCode, resp.Status)
+			fallbackIdx++
+			continue
 		}
 
 		if resp.StatusCode >= 400 {
@@ -128,6 +163,11 @@ func (sf *SimpleFetcher) FetchStatic(ctx context.Context, url string, opts Fetch
 		contentType := resp.Header.Get("Content-Type")
 		html := string(body)
 
+		// Remember the bot UA that succeeded for this domain.
+		if botFallback && sf.uaMemory != nil && fallbackIdx >= 0 && host != "" {
+			sf.uaMemory.Set(host, BotFallbackUAs[fallbackIdx])
+		}
+
 		return &FetchResult{
 			HTML:        html,
 			Title:       sf.extractTitle(html),
@@ -144,7 +184,7 @@ func (sf *SimpleFetcher) FetchStatic(ctx context.Context, url string, opts Fetch
 	return nil, fmt.Errorf("fetch failed after %d attempts", retryConfig.MaxRetries+1)
 }
 
-func (sf *SimpleFetcher) buildRequest(ctx context.Context, url string, opts FetchOptions, attempt int) (*http.Request, error) {
+func (sf *SimpleFetcher) buildRequest(ctx context.Context, url string, opts FetchOptions, uaOverride string) (*http.Request, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -152,12 +192,12 @@ func (sf *SimpleFetcher) buildRequest(ctx context.Context, url string, opts Fetc
 
 	// Determine user agent
 	var userAgent string
-	if opts.UserAgent != "" {
+	switch {
+	case uaOverride != "":
+		userAgent = uaOverride
+	case opts.UserAgent != "":
 		userAgent = opts.UserAgent
-	} else if attempt > 0 && opts.Retry.MaxRetries > 0 {
-		// On retry, try a different random UA or honest UA for Cloudflare
-		userAgent = sf.userAgentSelect.GetUserAgent(opts.BrowserAgent)
-	} else {
+	default:
 		userAgent = sf.userAgentSelect.GetUserAgent(opts.BrowserAgent)
 	}
 	req.Header.Set("User-Agent", userAgent)
@@ -193,6 +233,26 @@ func (sf *SimpleFetcher) acceptHeader(format string) string {
 	default:
 		return "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8"
 	}
+}
+
+// isBlockingStatus reports whether a status code typically indicates
+// UA/bot-based blocking rather than a transient failure.
+func isBlockingStatus(status int) bool {
+	switch status {
+	case 401, 402, 403, 429, 999: // 999 is LinkedIn's non-standard deny code
+		return true
+	}
+	return false
+}
+
+// indexOfBotUA returns the index of ua in BotFallbackUAs, or -1.
+func indexOfBotUA(ua string) int {
+	for i, candidate := range BotFallbackUAs {
+		if candidate == ua {
+			return i
+		}
+	}
+	return -1
 }
 
 func (sf *SimpleFetcher) shouldRetryStatus(status int, retryStatuses []int) bool {

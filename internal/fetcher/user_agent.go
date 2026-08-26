@@ -16,6 +16,16 @@ const (
 	UserAgentEdge    UserAgentType = "edge"
 )
 
+// BotFallbackUAs lists user agents tried in order when a site returns a
+// blocking status (401/402/403/429/999) for a regular browser agent.
+// Several sites whitelist AI crawler agents while blocking generic traffic.
+var BotFallbackUAs = []string{
+	"Claude-User",
+	"OpenAI File Downloader",
+	"XaiImageApiFetch/1.0",
+	"Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+}
+
 var userAgents = map[UserAgentType][]string{
 	UserAgentChrome: {
 		"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
