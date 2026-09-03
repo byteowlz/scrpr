@@ -404,6 +404,18 @@ func processURL(url string, cfg *config.Config) (*ProcessResult, error) {
 		}
 		result, err := processURLLocal(ctx, url, cfg)
 		if err == nil {
+			// Local success but poor/empty content (JS shell, bot wall, empty page):
+			// escalate to Jina too, since Jina Reader renders JS and often gets
+			// past the walls that leave the local fetch empty.
+			if backend == "" && isPoorContent(result.Content) {
+				if !quiet {
+					fmt.Fprintf(os.Stderr, "Local extraction returned poor/empty content for %s, trying Jina fallback...\n", url)
+				}
+				jinaResult, jinaErr := processURLBackend(ctx, url, cfg, "jina")
+				if jinaErr == nil && !isPoorContent(jinaResult.Content) {
+					return jinaResult, nil
+				}
+			}
 			return result, nil
 		}
 
@@ -590,6 +602,30 @@ func renderMetadata(md map[string]string) string {
 	}
 	b.WriteString("--- end ---\n")
 	return b.String()
+}
+
+// isPoorContent reports whether extracted text is empty or looks like a bot/JS
+// wall rather than real page content. Used to decide when to escalate to Jina.
+func isPoorContent(s string) bool {
+	t := strings.TrimSpace(s)
+	if len(t) == 0 {
+		return true
+	}
+	if len(t) < 100 {
+		return true
+	}
+	low := strings.ToLower(t)
+	for _, m := range []string{
+		"just a moment", "cf-challenge", "challenge-platform", "cf_chl", "cloudflare",
+		"verify you are human", "attention required", "enable javascript", "enabledjs",
+		"please enable javascript", "unusual traffic", "access denied",
+		"you've been blocked", "network security", "are you a robot", "bot detected",
+	} {
+		if strings.Contains(low, m) {
+			return true
+		}
+	}
+	return false
 }
 
 // isImageContent checks if a Content-Type header indicates an image
