@@ -402,6 +402,19 @@ func processURL(url string, cfg *config.Config) (*ProcessResult, error) {
 				fmt.Fprintf(os.Stderr, "fxtwitter failed for %s, trying local...\n", url)
 			}
 		}
+
+		// Auto-route YouTube search pages to the ytscrape backend: the result
+		// list lives in the ytInitialData JSON blob, invisible to readability
+		// and Jina. Falls through on failure.
+		if backend == "" && extractor.IsYouTubeSearchURL(url) {
+			ytResult, ytErr := processURLBackend(ctx, url, cfg, "ytscrape")
+			if ytErr == nil {
+				return ytResult, nil
+			}
+			if !quiet {
+				fmt.Fprintf(os.Stderr, "ytscrape failed for %s, trying local...\n", url)
+			}
+		}
 		result, err := processURLLocal(ctx, url, cfg)
 		if err == nil {
 			// Local success but poor/empty content (JS shell, bot wall, empty page):
@@ -550,6 +563,9 @@ func processURLBackend(ctx context.Context, url string, cfg *config.Config, back
 			time.Duration(timeout)*time.Second,
 		)
 
+	case "ytscrape":
+		backend = extractor.NewYtScrapeBackend(time.Duration(timeout) * time.Second)
+
 	case "defuddle":
 		baseURL := cfg.Extraction.Defuddle.BaseURL
 		if baseURL == "" {
@@ -561,7 +577,7 @@ func processURLBackend(ctx context.Context, url string, cfg *config.Config, back
 		)
 
 	default:
-		return nil, fmt.Errorf("unknown extraction backend: %s (available: readability, tavily, jina, fxtwitter, vxtwitter, defuddle)", backendName)
+		return nil, fmt.Errorf("unknown extraction backend: %s (available: readability, tavily, jina, fxtwitter, vxtwitter, defuddle, ytscrape)", backendName)
 	}
 
 	result, err := backend.Extract(ctx, url, outputFormat)
