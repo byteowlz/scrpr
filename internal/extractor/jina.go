@@ -98,6 +98,14 @@ func (j *JinaBackend) Extract(ctx context.Context, url string, format string) (*
 		finalContent = stripBasicMarkdown(markdownContent)
 	}
 
+	// Jina returns the page title in its own field, separate from the body.
+	// When the body omits it (JS shells / bot walls only expose the <title>),
+	// agents would otherwise lose the page title entirely. Surface it as a
+	// leading line when it isn't already present in the body.
+	if title != "" && !strings.Contains(finalContent, title) {
+		finalContent = title + "\n\n" + finalContent
+	}
+
 	return &ExtractResult{
 		URL:     url,
 		Title:   title,
