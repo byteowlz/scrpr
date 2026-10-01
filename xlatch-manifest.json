@@ -1,0 +1,43 @@
+{
+  "id": "scrpr.extract",
+  "title": "Extract webpage (scrpr)",
+  "description": "Fetch a shared web URL with this server's configured scrpr installation and return readable Markdown.",
+  "accepts": [
+    "text/uri-list"
+  ],
+  "input_schema": {
+    "type": "object",
+    "required": [
+      "text",
+      "mime_type"
+    ],
+    "properties": {
+      "text": {
+        "type": "string"
+      },
+      "mime_type": {
+        "const": "text/uri-list"
+      }
+    },
+    "additionalProperties": false
+  },
+  "output_schema": {
+    "type": "object",
+    "required": [
+      "text"
+    ],
+    "properties": {
+      "text": {
+        "type": "string"
+      }
+    },
+    "additionalProperties": false
+  },
+  "execution": {
+    "kind": "command",
+    "program": "/Users/tommyfalkowski/byteowlz/scrpr/xlatch_adapter.py",
+    "args": [],
+    "sha256": "67c93c9213e27d496d2dcb46059908257c547eaf91dea5b91582d61921d0015f"
+  },
+  "timeout_seconds": 120
+}

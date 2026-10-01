@@ -40,6 +40,12 @@ scrpr https://example.com -B jina
 sx "query" -L -n 5 | scrpr --format markdown
 ```
 
+## xlatch
+
+This repository includes `xlatch_adapter.py` and `xlatch-manifest.json` for registering scrpr as a normal URL-to-Markdown capability. It can be invoked directly or selected in the xlatch iOS app as this device's optional **Save for Later** preparation action. xlatch itself does not depend on scrpr; every client may select any compatible granted action.
+
+After changing the adapter, update the manifest's `execution.sha256`, register the manifest, and approve/grant its exact revision through the normal xlatch flow.
+
 ## Extraction Backends
 
 scrpr supports three extraction backends:
