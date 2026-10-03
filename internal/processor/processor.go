@@ -57,6 +57,13 @@ func (cp *ContentProcessor) Process(html, url string, opts ProcessOptions) (*Pro
 		return nil, fmt.Errorf("failed to process with readability: %w", err)
 	}
 
+	// Recover section headings dropped by readability's class heuristics
+	if recovered := recoverHeadings(html, article); recovered != nil {
+		article.Content = recovered.Content
+		article.TextContent = recovered.TextContent
+		article.Length = recovered.Length
+	}
+
 	result := &ProcessedContent{
 		Title:       article.Title,
 		Content:     article.Content,

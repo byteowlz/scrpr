@@ -60,6 +60,11 @@ scrpr supports three extraction backends:
 
 Local extraction using go-readability. No API key needed. Works for most sites.
 
+If readability drops most of the page's section headings (common on sites whose
+CSS-module class names contain words like `Header` or `Footer`), scrpr re-runs
+it on the `<main>`/`<article>` element with class names stripped and keeps the
+result if more headings survive.
+
 ```bash
 scrpr https://example.com
 ```
