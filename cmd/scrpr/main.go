@@ -336,8 +336,9 @@ func run(cmd *cobra.Command, args []string) error {
 				fmt.Fprintf(os.Stderr, "Saved: %s\n", filePath)
 			}
 		} else {
-			// Single output mode
-			if len(result.Metadata) > 0 {
+			// Single output mode. Quiet mode means content only: suppress the
+			// metadata header unless explicitly requested via --include-metadata.
+			if len(result.Metadata) > 0 && (!quiet || includeMetadata) {
 				fmt.Fprintln(output, renderMetadata(result.Metadata))
 			}
 			fmt.Fprint(output, result.Content)
