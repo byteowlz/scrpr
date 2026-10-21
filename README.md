@@ -161,11 +161,45 @@ sx "query" -L -n 10 | scrpr --delay 0.5 --continue-on-error
 sx "query" -L -n 5 | scrpr -q --format markdown > output.md
 ```
 
+### X/Twitter Threads
+
+Tweet URLs are auto-routed to the fxtwitter backend (no API key needed) and
+return the entire unrolled thread by default — numbered and separated per
+post. Works with any tweet ID in the thread: the full thread is returned from
+its first post. Threads with a single post render as plain tweet text.
+
+Quoted posts are fetched too: if any post in the thread quotes another tweet,
+the quoted tweet (or the quoted thread, if the quote is part of one) is
+appended as a labelled section (depth 1, deduplicated, capped at 5 quotes;
+deleted quotes are skipped silently).
+
+```bash
+# Entire thread + quoted content (default)
+scrpr https://x.com/user/status/123 --format markdown
+
+# Focal tweet only
+scrpr --no-thread https://x.com/user/status/123
+
+# Thread without quote expansion
+scrpr --no-quotes https://x.com/user/status/123
+
+# Thread with metadata header
+scrpr --include-metadata https://x.com/user/status/123
+```
+
+Thread and quote extraction apply to the fxtwitter/vxtwitter backends; if the
+thread fetch fails, scrpr falls back to the single tweet. `thread_posts` and
+`quoted_threads` counts are added to the metadata.
+
 ### All Flags
 
 ```
 Flags:
-  -B, --extract-backend string   extraction backend (readability, tavily, jina)
+  -B, --extract-backend string   extraction backend (readability, tavily, jina, fxtwitter, vxtwitter)
+      --thread                   extract entire X/Twitter thread for tweet URLs (default)
+      --no-thread                extract only the focal X/Twitter tweet
+      --quotes                   also fetch quoted posts/threads for tweet URLs (default)
+      --no-quotes                do not fetch quoted posts/threads
   -f, --file string              read URLs from file
   -o, --output string            output to file or directory
       --format string            text or markdown (default "text")

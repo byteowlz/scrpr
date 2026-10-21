@@ -55,6 +55,10 @@ var (
 	noFollowRedirects bool
 	delay             float64
 	extractBackend    string
+	thread            bool
+	noThread          bool
+	quotes            bool
+	noQuotes          bool
 )
 
 // version is overridden at release time via -ldflags "-X main.version=...".
@@ -120,6 +124,10 @@ func init() {
 
 	// Extraction backend flags
 	rootCmd.Flags().StringVarP(&extractBackend, "extract-backend", "B", "", "extraction backend (readability, tavily, jina, fxtwitter, vxtwitter, defuddle)")
+	rootCmd.Flags().BoolVar(&thread, "thread", true, "extract the entire X/Twitter thread for tweet URLs (default)")
+	rootCmd.Flags().BoolVar(&noThread, "no-thread", false, "extract only the focal X/Twitter tweet, not the whole thread")
+	rootCmd.Flags().BoolVar(&quotes, "quotes", true, "also fetch quoted posts/threads for tweet URLs (default)")
+	rootCmd.Flags().BoolVar(&noQuotes, "no-quotes", false, "do not fetch quoted posts/threads for tweet URLs")
 
 	// System flags
 	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose logging")
@@ -562,6 +570,8 @@ func processURLBackend(ctx context.Context, url string, cfg *config.Config, back
 		backend = extractor.NewFxtwitterBackend(
 			backendName,
 			time.Duration(timeout)*time.Second,
+			thread && !noThread,
+			quotes && !noQuotes,
 		)
 
 	case "ytscrape":
@@ -607,7 +617,7 @@ func renderMetadata(md map[string]string) string {
 	order := []string{
 		"url", "screen_name", "name", "description",
 		"likes", "retweets", "replies", "bookmarks", "views",
-		"created_at", "lang", "replying_to",
+		"created_at", "lang", "replying_to", "thread_posts", "quoted_threads",
 		"quote_author", "quote_text", "note_tweet",
 	}
 	var b strings.Builder

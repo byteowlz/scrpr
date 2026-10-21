@@ -53,6 +53,10 @@ title = "UNIX Pipe Support"
 description = "Full pipe-friendly design, pairs with sx for search-to-content pipelines"
 
 [[features]]
+title = "X/Twitter Threads"
+description = "Tweet URLs return the entire unrolled thread by default, numbered per post, with quoted posts and quoted threads appended automatically; --no-thread / --no-quotes to narrow"
+
+[[features]]
 title = "Multiple Output Formats"
 description = "Plain text or Markdown output with optional metadata"
 
